@@ -13,6 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -21,13 +23,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -35,32 +39,28 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage // <-- COIL IMPORT
+import coil.compose.AsyncImage
 import com.example.hobbyhub.R
 import com.example.hobbyhub.core.navigations.Screen
-import com.example.hobbyhub.ui.theme.EventHubDarkText // ADDED IMPORT
-import com.example.hobbyhub.ui.theme.EventHubLightGray // ADDED IMPORT
-import com.example.hobbyhub.ui.theme.EventHubPrimary // ADDED IMPORT
-import com.example.hobbyhub.ui.theme.TagBackground // ADDED IMPORT
-import com.example.hobbyhub.mainui.signup.viewmodel.SignupViewModel // ADDED IMPORT
-import androidx.hilt.navigation.compose.hiltViewModel // ADDED IMPORT
-
+import com.example.hobbyhub.ui.theme.EventHubDarkText
+import com.example.hobbyhub.ui.theme.EventHubLightGray
+import com.example.hobbyhub.ui.theme.EventHubPrimary
+import com.example.hobbyhub.ui.theme.TagBackground
+import com.example.hobbyhub.mainui.signup.viewmodel.SignupViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignupScreen(
     navController: NavController,
-    viewModel: SignupViewModel = hiltViewModel() // INJECTED VIEWMODEL
+    viewModel: SignupViewModel = hiltViewModel()
 ) {
     // Collect UI State from ViewModel
     val uiState by viewModel.uiState.collectAsState()
+    val focusManager = LocalFocusManager.current
 
     // --- PHOTO STATE (Kept local as it deals with URI/Android lifecycle integration) ---
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-
-    // Removed: Local state variables (fullName, email, password, etc. - now in ViewModel)
-    // Removed: availableHobbyTags (now in ViewModel)
-    // Removed: selectedHobbyTags (now in ViewModel)
 
     Column(
         modifier = Modifier
@@ -118,7 +118,9 @@ fun SignupScreen(
             value = uiState.fullName,
             onValueChange = viewModel::onFullNameChange, // UPDATED: uses ViewModel
             placeholderText = "Full name",
-            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) }
+            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -127,7 +129,9 @@ fun SignupScreen(
             value = uiState.email,
             onValueChange = viewModel::onEmailChange, // UPDATED: uses ViewModel
             placeholderText = "abc@email.com",
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) }
+            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -136,7 +140,9 @@ fun SignupScreen(
             value = uiState.city,
             onValueChange = viewModel::onCityChange, // UPDATED: uses ViewModel
             placeholderText = "City (e.g., New York)",
-            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray) }
+            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray) },
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -152,7 +158,9 @@ fun SignupScreen(
                 IconButton(onClick = viewModel::togglePasswordVisibility) { // UPDATED: uses ViewModel
                     Icon(imageVector = image, contentDescription = "Toggle password visibility", tint = Color.Gray)
                 }
-            }
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -168,7 +176,9 @@ fun SignupScreen(
                 IconButton(onClick = viewModel::toggleConfirmPasswordVisibility) { // UPDATED: uses ViewModel
                     Icon(imageVector = image, contentDescription = "Toggle confirm password visibility", tint = Color.Gray)
                 }
-            }
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
         )
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -269,6 +279,7 @@ fun ProfilePictureUploader(
 
 
 // --- Component: Hobby Tag Selector ---
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HobbyTagSelector(
     availableTags: List<String>,
@@ -307,6 +318,7 @@ fun HobbyTagSelector(
 
 
 // --- Reused Helper Composable for Text Fields (Pill-shaped, no outline) ---
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomTextField(
     value: String,
@@ -314,7 +326,9 @@ private fun CustomTextField(
     placeholderText: String,
     leadingIcon: @Composable () -> Unit,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     TextField(
         value = value,
@@ -334,7 +348,10 @@ private fun CustomTextField(
             cursorColor = EventHubPrimary,
             focusedTextColor = EventHubDarkText,
             unfocusedTextColor = EventHubDarkText,
-        )
+        ),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = true
     )
 }
 

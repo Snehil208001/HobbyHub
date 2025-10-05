@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
@@ -16,11 +18,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -33,23 +38,16 @@ import com.example.hobbyhub.core.navigations.Screen
 import com.example.hobbyhub.ui.theme.EventHubDarkText
 import com.example.hobbyhub.ui.theme.EventHubLightGray
 import com.example.hobbyhub.ui.theme.EventHubPrimary
-import androidx.hilt.navigation.compose.hiltViewModel // ADDED IMPORT
-import com.example.hobbyhub.mainui.login.viewmodel.LoginViewModel // ADDED IMPORT
-
-
-// The color constants (EventHubPrimary, EventHubLightGray, EventHubDarkText)
-// are correctly imported from ui.theme.
-
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.hobbyhub.mainui.login.viewmodel.LoginViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavController,
-    viewModel: LoginViewModel = hiltViewModel() // INJECTED VIEWMODEL
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
-    // Collect UI state from ViewModel
     val uiState by viewModel.uiState.collectAsState()
-
-    // Removed: Local state variables (email, password, passwordVisible, rememberMe)
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
@@ -60,7 +58,6 @@ fun LoginScreen(
     ) {
         Spacer(modifier = Modifier.height(80.dp))
 
-        // --- Logo and App Name ---
         Image(
             painter = painterResource(id = R.drawable.logo),
             contentDescription = "HobbyHub Logo",
@@ -74,7 +71,6 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(64.dp))
 
-        // --- "Sign in" Header ---
         Text(
             "Sign in",
             style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
@@ -83,32 +79,33 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         )
 
-        // --- Email Input Field ---
         CustomTextField(
-            value = uiState.email, // UPDATED
-            onValueChange = viewModel::onEmailChange, // UPDATED
+            value = uiState.email,
+            onValueChange = viewModel::onEmailChange,
             placeholderText = "abc@email.com",
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) }
+            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- Password Input Field ---
         CustomTextField(
-            value = uiState.password, // UPDATED
-            onValueChange = viewModel::onPasswordChange, // UPDATED
+            value = uiState.password,
+            onValueChange = viewModel::onPasswordChange,
             placeholderText = "Your password",
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-            visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(), // UPDATED
+            visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = viewModel::togglePasswordVisibility) { // UPDATED
+                IconButton(onClick = viewModel::togglePasswordVisibility) {
                     Icon(imageVector = image, contentDescription = "Toggle password visibility", tint = Color.Gray)
                 }
-            }
+            },
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- Remember Me & Forgot Password ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -116,8 +113,8 @@ fun LoginScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(
-                    checked = uiState.rememberMe, // UPDATED
-                    onCheckedChange = viewModel::onRememberMeToggle, // UPDATED
+                    checked = uiState.rememberMe,
+                    onCheckedChange = viewModel::onRememberMeToggle,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = EventHubPrimary,
@@ -139,8 +136,8 @@ fun LoginScreen(
 
         // --- SIGN IN Button ---
         Button(
-            onClick = viewModel::onLoginClick, // UPDATED
-            enabled = uiState.isLoginEnabled, // ADDED: Button is enabled/disabled by ViewModel state
+            onClick = viewModel::onLoginClick,
+            enabled = uiState.isLoginEnabled,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)
@@ -158,12 +155,10 @@ fun LoginScreen(
         }
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- OR Divider ---
         DividerWithText()
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- Social Login Buttons ---
         SocialLoginButton(
             icon = R.drawable.ic_google,
             text = "Login with Google",
@@ -177,13 +172,11 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.weight(1f))
 
-        // --- Sign Up Link ---
         SignUpLink(navController)
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
-// --- Helper Composable for Text Fields (To match the image's "filled" appearance) ---
 @Composable
 private fun CustomTextField(
     value: String,
@@ -191,7 +184,9 @@ private fun CustomTextField(
     placeholderText: String,
     leadingIcon: @Composable () -> Unit,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     TextField(
         value = value,
@@ -211,12 +206,13 @@ private fun CustomTextField(
             cursorColor = EventHubPrimary,
             focusedTextColor = EventHubDarkText,
             unfocusedTextColor = EventHubDarkText,
-        )
+        ),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = true
     )
 }
 
-
-// --- MODIFIED Social Login Button ---
 @Composable
 fun SocialLoginButton(
     icon: Int,
@@ -240,7 +236,6 @@ fun SocialLoginButton(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            // ⭐️ This change centers the icon and text within the button
             horizontalArrangement = Arrangement.Center
         ) {
             Image(
@@ -257,7 +252,6 @@ fun SocialLoginButton(
         }
     }
 }
-
 
 @Composable
 private fun SignUpLink(navController: NavController) {

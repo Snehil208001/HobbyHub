@@ -9,7 +9,7 @@ import javax.inject.Inject
 
 data class ResetPasswordUiState(
     val email: String = "",
-    val isSendEnabled: Boolean = false
+    val isSendEnabled: Boolean = true // UPDATED: Button is now enabled by default
 )
 
 @HiltViewModel
@@ -20,7 +20,7 @@ class ResetPasswordViewModel @Inject constructor() : ViewModel() {
 
     fun onEmailChange(newEmail: String) {
         _uiState.update { it.copy(email = newEmail) }
-        validateForm()
+        // validateForm() // REMOVED
     }
 
     fun onSendClick() {

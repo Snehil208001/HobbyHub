@@ -12,7 +12,7 @@ data class LoginUiState(
     val password: String = "",
     val passwordVisible: Boolean = false,
     val rememberMe: Boolean = false,
-    val isLoginEnabled: Boolean = false // Derived state for button enablement
+    val isLoginEnabled: Boolean = true // UPDATED: Button is now enabled by default
 )
 
 @HiltViewModel
@@ -25,12 +25,12 @@ class LoginViewModel @Inject constructor() : ViewModel() {
 
     fun onEmailChange(newEmail: String) {
         _uiState.update { it.copy(email = newEmail) }
-        validateForm()
+        // validateForm() // REMOVED: No longer needed to enable/disable button
     }
 
     fun onPasswordChange(newPassword: String) {
         _uiState.update { it.copy(password = newPassword) }
-        validateForm()
+        // validateForm() // REMOVED: No longer needed to enable/disable button
     }
 
     fun togglePasswordVisibility() {
@@ -44,6 +44,7 @@ class LoginViewModel @Inject constructor() : ViewModel() {
     // --- Action Handler ---
     fun onLoginClick() {
         // TODO: Implement actual login logic (API calls, validation, navigation)
+        // You might want to add form validation here before proceeding
         println("Attempting login for user: ${_uiState.value.email}")
     }
 

@@ -18,7 +18,7 @@ data class SignupUiState(
     val passwordVisible: Boolean = false,
     val confirmPasswordVisible: Boolean = false,
     val selectedHobbyTags: Set<String> = emptySet(),
-    val isSignUpEnabled: Boolean = false // Example derived state for button enablement
+    val isSignUpEnabled: Boolean = true // Example derived state for button enablement
 )
 
 @HiltViewModel
@@ -33,27 +33,27 @@ class SignupViewModel @Inject constructor() : ViewModel() {
 
     fun onFullNameChange(newFullName: String) {
         _uiState.update { it.copy(fullName = newFullName) }
-        validateForm()
+        // validateForm() // REMOVED
     }
 
     fun onEmailChange(newEmail: String) {
         _uiState.update { it.copy(email = newEmail) }
-        validateForm()
+        // validateForm() // REMOVED
     }
 
     fun onCityChange(newCity: String) {
         _uiState.update { it.copy(city = newCity) }
-        validateForm()
+        // validateForm() // REMOVED
     }
 
     fun onPasswordChange(newPassword: String) {
         _uiState.update { it.copy(password = newPassword) }
-        validateForm()
+        // validateForm() // REMOVED
     }
 
     fun onConfirmPasswordChange(newConfirmPassword: String) {
         _uiState.update { it.copy(confirmPassword = newConfirmPassword) }
-        validateForm()
+        // validateForm() // REMOVED
     }
 
     fun togglePasswordVisibility() {

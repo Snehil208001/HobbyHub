@@ -3,6 +3,8 @@ package com.example.hobbyhub.mainui.login.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -13,36 +15,33 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.hobbyhub.ui.theme.EventHubDarkText // ADDED IMPORT
-import com.example.hobbyhub.ui.theme.EventHubPrimary // ADDED IMPORT
-import androidx.hilt.navigation.compose.hiltViewModel // ADDED IMPORT
-import com.example.hobbyhub.mainui.login.viewmodel.ResetPasswordViewModel // ADDED IMPORT
-
-
-// REMOVED: Duplicate color definitions from this file.
+import com.example.hobbyhub.ui.theme.EventHubDarkText
+import com.example.hobbyhub.ui.theme.EventHubPrimary
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.hobbyhub.mainui.login.viewmodel.ResetPasswordViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPasswordScreen(
     navController: NavController,
-    viewModel: ResetPasswordViewModel = hiltViewModel() // INJECTED VIEWMODEL
+    viewModel: ResetPasswordViewModel = hiltViewModel()
 ) {
     // Collect UI state from ViewModel
     val uiState by viewModel.uiState.collectAsState()
-
-    // Removed: var email by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
-            // ADDED: Apply systemBarsPadding for spacing from the status bar/notch (from previous fix)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical))
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -67,7 +66,7 @@ fun ResetPasswordScreen(
 
         // --- Title and Description ---
         Text(
-            "Resset Password",
+            "Reset Password",
             style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
             fontWeight = FontWeight.SemiBold,
             color = EventHubDarkText,
@@ -86,7 +85,9 @@ fun ResetPasswordScreen(
             value = uiState.email, // UPDATED: uses ViewModel state
             onValueChange = viewModel::onEmailChange, // UPDATED: uses ViewModel handler
             placeholderText = "abc@email.com",
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) }
+            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -124,7 +125,9 @@ private fun CustomTextField(
     placeholderText: String,
     leadingIcon: @Composable () -> Unit,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     TextField(
         value = value,
@@ -144,6 +147,9 @@ private fun CustomTextField(
             cursorColor = EventHubPrimary,
             focusedTextColor = EventHubDarkText,
             unfocusedTextColor = EventHubDarkText,
-        )
+        ),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = true
     )
 }
