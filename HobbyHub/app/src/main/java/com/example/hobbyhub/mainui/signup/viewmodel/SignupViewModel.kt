@@ -1,14 +1,15 @@
 package com.example.hobbyhub.mainui.signup.viewmodel
 
-
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// Data class to hold all mutable state for the screen
 data class SignupUiState(
     val fullName: String = "",
     val email: String = "",
@@ -18,7 +19,7 @@ data class SignupUiState(
     val passwordVisible: Boolean = false,
     val confirmPasswordVisible: Boolean = false,
     val selectedHobbyTags: Set<String> = emptySet(),
-    val isSignUpEnabled: Boolean = true // Example derived state for button enablement
+    val isSignUpEnabled: Boolean = true
 )
 
 @HiltViewModel
@@ -27,33 +28,29 @@ class SignupViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(SignupUiState())
     val uiState: StateFlow<SignupUiState> = _uiState
 
-    val availableHobbyTags = listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
+    private val _navigateToHome = MutableStateFlow(false)
+    val navigateToHome = _navigateToHome.asStateFlow()
 
-    // --- Event Handlers for Form Fields ---
+    val availableHobbyTags = listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
 
     fun onFullNameChange(newFullName: String) {
         _uiState.update { it.copy(fullName = newFullName) }
-        // validateForm() // REMOVED
     }
 
     fun onEmailChange(newEmail: String) {
         _uiState.update { it.copy(email = newEmail) }
-        // validateForm() // REMOVED
     }
 
     fun onCityChange(newCity: String) {
         _uiState.update { it.copy(city = newCity) }
-        // validateForm() // REMOVED
     }
 
     fun onPasswordChange(newPassword: String) {
         _uiState.update { it.copy(password = newPassword) }
-        // validateForm() // REMOVED
     }
 
     fun onConfirmPasswordChange(newConfirmPassword: String) {
         _uiState.update { it.copy(confirmPassword = newConfirmPassword) }
-        // validateForm() // REMOVED
     }
 
     fun togglePasswordVisibility() {
@@ -75,20 +72,14 @@ class SignupViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    // --- Action Handler ---
     fun onSignupClick() {
-        // TODO: Implement actual signup logic (API calls, validation, navigation)
-        println("Attempting signup with: ${_uiState.value}")
+        // In a real app, you would perform registration here.
+        viewModelScope.launch {
+            _navigateToHome.value = true
+        }
     }
 
-    // --- Basic Validation Example (for button enable/disable) ---
-    private fun validateForm() {
-        val state = _uiState.value
-        // Simple validation: check if email is present, password length is at least 6, and passwords match
-        val isValid = state.email.isNotBlank() &&
-                state.password.length >= 6 &&
-                state.password == state.confirmPassword
-
-        _uiState.update { it.copy(isSignUpEnabled = isValid) }
+    fun onNavigatedToHome() {
+        _navigateToHome.value = false
     }
 }

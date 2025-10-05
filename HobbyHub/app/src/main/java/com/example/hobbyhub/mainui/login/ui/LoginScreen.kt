@@ -47,7 +47,18 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val navigateToHome by viewModel.navigateToHome.collectAsState()
     val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(navigateToHome) {
+        if (navigateToHome) {
+            navController.navigate(Screen.HomeScreen.route) {
+                // Clear the back stack to prevent going back to login
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            }
+            viewModel.onNavigatedToHome() // Reset the state
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -134,7 +145,6 @@ fun LoginScreen(
         }
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- SIGN IN Button ---
         Button(
             onClick = viewModel::onLoginClick,
             enabled = uiState.isLoginEnabled,
@@ -176,6 +186,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
+// Keep the rest of the file (CustomTextField, SocialLoginButton, etc.) as is
 
 @Composable
 private fun CustomTextField(

@@ -10,7 +10,8 @@ activityCompose = "1.11.0"
 composeBom = "2024.09.00"
 hilt = "2.51.1"
 materialIcons = "1.6.7" # Version for the icons
-composeHiltNavigation = "1.2.0" # ADDED: Version for Hilt Compose integration
+composeHiltNavigation = "1.2.0"
+playServicesLocation = "21.3.0" # ADDED: Version for Hilt Compose integration
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -37,6 +38,7 @@ hilt-android-compiler = { group = "com.google.dagger", name = "hilt-android-comp
 
 # ADDED: Hilt Compose Navigation library
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "composeHiltNavigation" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

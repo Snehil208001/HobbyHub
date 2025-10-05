@@ -55,17 +55,24 @@ fun SignupScreen(
     navController: NavController,
     viewModel: SignupViewModel = hiltViewModel()
 ) {
-    // Collect UI State from ViewModel
     val uiState by viewModel.uiState.collectAsState()
+    val navigateToHome by viewModel.navigateToHome.collectAsState()
     val focusManager = LocalFocusManager.current
 
-    // --- PHOTO STATE (Kept local as it deals with URI/Android lifecycle integration) ---
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    LaunchedEffect(navigateToHome) {
+        if (navigateToHome) {
+            navController.navigate(Screen.HomeScreen.route) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            }
+            viewModel.onNavigatedToHome()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            // Apply systemBarsPadding for spacing from the status bar/notch (from previous fix)
             .padding(horizontal = 24.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical))
             .verticalScroll(rememberScrollState()),
@@ -96,27 +103,16 @@ fun SignupScreen(
             color = EventHubDarkText,
             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
         )
-
-        // ----------------------------------------------------
-        // --- 1. Upload Photo ---
-        // ----------------------------------------------------
         ProfilePictureUploader(
             imageUri = selectedImageUri,
-            onImageSelected = { uri ->
-                selectedImageUri = uri
-                // NOTE: This is where you would launch the CROP activity
-            }
+            onImageSelected = { uri -> selectedImageUri = uri }
         )
         Spacer(modifier = Modifier.height(32.dp))
-
-        // ----------------------------------------------------
-        // --- 2. Profile and Auth Details ---
-        // ----------------------------------------------------
 
         // Full Name Input
         CustomTextField(
             value = uiState.fullName,
-            onValueChange = viewModel::onFullNameChange, // UPDATED: uses ViewModel
+            onValueChange = viewModel::onFullNameChange,
             placeholderText = "Full name",
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
@@ -127,7 +123,7 @@ fun SignupScreen(
         // Email Input
         CustomTextField(
             value = uiState.email,
-            onValueChange = viewModel::onEmailChange, // UPDATED: uses ViewModel
+            onValueChange = viewModel::onEmailChange,
             placeholderText = "abc@email.com",
             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
@@ -135,10 +131,10 @@ fun SignupScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // City Input (New field from requirements)
+        // City Input
         CustomTextField(
             value = uiState.city,
-            onValueChange = viewModel::onCityChange, // UPDATED: uses ViewModel
+            onValueChange = viewModel::onCityChange,
             placeholderText = "City (e.g., New York)",
             leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray) },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
@@ -149,13 +145,13 @@ fun SignupScreen(
         // Password Input
         CustomTextField(
             value = uiState.password,
-            onValueChange = viewModel::onPasswordChange, // UPDATED: uses ViewModel
+            onValueChange = viewModel::onPasswordChange,
             placeholderText = "Your password",
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
             visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = viewModel::togglePasswordVisibility) { // UPDATED: uses ViewModel
+                IconButton(onClick = viewModel::togglePasswordVisibility) {
                     Icon(imageVector = image, contentDescription = "Toggle password visibility", tint = Color.Gray)
                 }
             },
@@ -167,13 +163,13 @@ fun SignupScreen(
         // Confirm Password Input
         CustomTextField(
             value = uiState.confirmPassword,
-            onValueChange = viewModel::onConfirmPasswordChange, // UPDATED: uses ViewModel
+            onValueChange = viewModel::onConfirmPasswordChange,
             placeholderText = "Confirm password",
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
             visualTransformation = if (uiState.confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 val image = if (uiState.confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = viewModel::toggleConfirmPasswordVisibility) { // UPDATED: uses ViewModel
+                IconButton(onClick = viewModel::toggleConfirmPasswordVisibility) {
                     Icon(imageVector = image, contentDescription = "Toggle confirm password visibility", tint = Color.Gray)
                 }
             },
@@ -182,9 +178,6 @@ fun SignupScreen(
         )
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ----------------------------------------------------
-        // --- 3. Hobby Tags Selection ---
-        // ----------------------------------------------------
         Text(
             "Select your interests:",
             style = MaterialTheme.typography.titleMedium,
@@ -193,16 +186,16 @@ fun SignupScreen(
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
         )
         HobbyTagSelector(
-            availableTags = viewModel.availableHobbyTags, // UPDATED: uses ViewModel
-            selectedTags = uiState.selectedHobbyTags, // UPDATED: uses ViewModel
-            onTagSelected = viewModel::toggleHobbyTag // UPDATED: uses ViewModel
+            availableTags = viewModel.availableHobbyTags,
+            selectedTags = uiState.selectedHobbyTags,
+            onTagSelected = viewModel::toggleHobbyTag
         )
         Spacer(modifier = Modifier.height(40.dp))
 
         // --- SIGN UP Button ---
         Button(
-            onClick = viewModel::onSignupClick, // UPDATED: uses ViewModel
-            enabled = uiState.isSignUpEnabled, // ADDED: Button is enabled/disabled by ViewModel state
+            onClick = viewModel::onSignupClick,
+            enabled = uiState.isSignUpEnabled,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)
@@ -220,11 +213,11 @@ fun SignupScreen(
         }
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- Sign In Link ---
         SignInLink(navController)
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
+// Keep the rest of the file (ProfilePictureUploader, HobbyTagSelector, etc.) as is
 
 // ----------------------------------------------------------------------
 // --- MODIFIED Component: Profile Photo Uploader with Coil and Picker ---

@@ -52,6 +52,7 @@ dependencies {
 
     // This line explicitly adds the icon library to your app
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.play.services.location)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
