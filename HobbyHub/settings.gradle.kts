@@ -16,6 +16,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // 🔑 FIXED: Added JitPack repository to resolve the image cropper dependency
+        maven { url = java.net.URI("https://www.jitpack.io") }
     }
 }
 

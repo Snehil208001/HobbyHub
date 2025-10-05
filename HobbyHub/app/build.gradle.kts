@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.kapt) // Add this
-    alias(libs.plugins.dagger.hilt.android) // Add this
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.dagger.hilt.android)
 }
 
 android {
@@ -16,7 +16,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -42,7 +41,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -51,6 +49,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
+    // This line explicitly adds the icon library to your app
+    implementation(libs.androidx.material.icons.extended)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -60,10 +62,22 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     val nav_version = "2.9.5"
-
     implementation("androidx.navigation:navigation-compose:$nav_version")
 
     // Hilt Dependencies
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
+
+
+    // 1. Image Loading (Coil)
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // 2. Image Cropping Library (FIXED: Using correct GitHub/JitPack coordinates)
+    implementation("com.github.ArthurHub:Android-Image-Cropper:2.8.0")
+
+    // Activity Result API for picking and cropping
+    implementation("androidx.activity:activity-compose:1.8.1")
+
+    // 🔑 FIXED: Explicitly add appcompat to provide the required XML themes
+    implementation("androidx.appcompat:appcompat:1.6.1")
 }

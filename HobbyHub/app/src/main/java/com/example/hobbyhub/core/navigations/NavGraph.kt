@@ -1,15 +1,12 @@
 package com.example.hobbyhub.core.navigations
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.hobbyhub.mainui.login.ui.LoginScreen
 import com.example.hobbyhub.mainui.onboardingscreen.ui.OnboardingScreen
+import com.example.hobbyhub.mainui.signup.ui.SignupScreen
 import com.example.hobbyhub.mainui.splashscreen.ui.SplashScreen
 
 @Composable
@@ -21,11 +18,16 @@ fun SetupNavGraph(navController: NavHostController) {
         composable(Screen.SplashScreen.route) {
             SplashScreen(navController = navController)
         }
-        composable(Screen.OnboardingScreen.route) { // Add this composable
+        composable(Screen.OnboardingScreen.route) {
             OnboardingScreen(navController = navController)
         }
-
+        // Add the LoginScreen route
+        composable(Screen.LoginScreen.route) {
+            LoginScreen(navController = navController)
+        }
+        // Add the SignupScreen route
+        composable(Screen.SignupScreen.route) {
+            SignupScreen(navController = navController)
+        }
     }
 }
-
-// ... (HomeScreen, LoginScreen, SignupScreen placeholders)
