@@ -30,18 +30,26 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.hobbyhub.R
 import com.example.hobbyhub.core.navigations.Screen
+import com.example.hobbyhub.ui.theme.EventHubDarkText
+import com.example.hobbyhub.ui.theme.EventHubLightGray
+import com.example.hobbyhub.ui.theme.EventHubPrimary
+import androidx.hilt.navigation.compose.hiltViewModel // ADDED IMPORT
+import com.example.hobbyhub.mainui.login.viewmodel.LoginViewModel // ADDED IMPORT
 
-// Define colors to closely match the image
-val EventHubPrimary = Color(0xFF5E54F3)
-val EventHubLightGray = Color(0xFFE0E0E0)
-val EventHubDarkText = Color(0xFF1E1E1E)
+
+// The color constants (EventHubPrimary, EventHubLightGray, EventHubDarkText)
+// are correctly imported from ui.theme.
+
 
 @Composable
-fun LoginScreen(navController: NavController) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
+fun LoginScreen(
+    navController: NavController,
+    viewModel: LoginViewModel = hiltViewModel() // INJECTED VIEWMODEL
+) {
+    // Collect UI state from ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Removed: Local state variables (email, password, passwordVisible, rememberMe)
 
     Column(
         modifier = Modifier
@@ -77,8 +85,8 @@ fun LoginScreen(navController: NavController) {
 
         // --- Email Input Field ---
         CustomTextField(
-            value = email,
-            onValueChange = { email = it },
+            value = uiState.email, // UPDATED
+            onValueChange = viewModel::onEmailChange, // UPDATED
             placeholderText = "abc@email.com",
             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) }
         )
@@ -86,14 +94,14 @@ fun LoginScreen(navController: NavController) {
 
         // --- Password Input Field ---
         CustomTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = uiState.password, // UPDATED
+            onValueChange = viewModel::onPasswordChange, // UPDATED
             placeholderText = "Your password",
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(), // UPDATED
             trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                IconButton(onClick = viewModel::togglePasswordVisibility) { // UPDATED
                     Icon(imageVector = image, contentDescription = "Toggle password visibility", tint = Color.Gray)
                 }
             }
@@ -108,8 +116,8 @@ fun LoginScreen(navController: NavController) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(
-                    checked = rememberMe,
-                    onCheckedChange = { rememberMe = it },
+                    checked = uiState.rememberMe, // UPDATED
+                    onCheckedChange = viewModel::onRememberMeToggle, // UPDATED
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = EventHubPrimary,
@@ -121,7 +129,7 @@ fun LoginScreen(navController: NavController) {
                 Text("Remember Me", color = EventHubDarkText)
             }
             TextButton(
-                onClick = { /* TODO */ },
+                onClick = { navController.navigate(Screen.ResetPasswordScreen.route) },
                 contentPadding = PaddingValues(0.dp)
             ) {
                 Text("Forgot Password?", color = EventHubPrimary, fontWeight = FontWeight.SemiBold)
@@ -131,7 +139,8 @@ fun LoginScreen(navController: NavController) {
 
         // --- SIGN IN Button ---
         Button(
-            onClick = { /* TODO: Handle login logic */ },
+            onClick = viewModel::onLoginClick, // UPDATED
+            enabled = uiState.isLoginEnabled, // ADDED: Button is enabled/disabled by ViewModel state
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)

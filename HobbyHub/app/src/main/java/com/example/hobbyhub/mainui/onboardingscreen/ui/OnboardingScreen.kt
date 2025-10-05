@@ -36,29 +36,40 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.hobbyhub.core.navigations.Screen
 import com.example.hobbyhub.domain.model.OnBoardingPage
-import com.example.hobbyhub.domain.model.onBoardingPages
+import com.example.hobbyhub.domain.model.onBoardingPages // REMAINED for PageIndicator/PagerState initialization
 import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel // ADDED IMPORT
+import com.example.hobbyhub.mainui.onboardingscreen.viewmodel.OnboardingViewModel // ADDED IMPORT
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun OnboardingScreen(navController: NavController) {
-    val pagerState = rememberPagerState(pageCount = { onBoardingPages.size })
+fun OnboardingScreen(
+    navController: NavController,
+    viewModel: OnboardingViewModel = hiltViewModel() // INJECTED VIEWMODEL
+) {
+    // NOTE: pageCount relies on the size of the original list,
+    // but the actual list pages are loaded from the ViewModel.
+    val pages = viewModel.pages
+    val pagerState = rememberPagerState(pageCount = { pages.size })
 
     Column(modifier = Modifier.fillMaxSize()) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f)
-        ) { page ->
-            OnboardingPageContent(page = onBoardingPages[page])
+        ) { pageIndex -> // Changed iterator name to pageIndex for clarity
+            OnboardingPageContent(page = pages[pageIndex]) // Used pages from ViewModel
         }
 
         OnboardingFooter(
             pagerState = pagerState,
             onNextClicked = {
+                viewModel.onOnboardingComplete() // Delegate completion logic to ViewModel
                 navController.popBackStack() // Remove onboarding from the back stack
                 navController.navigate(Screen.LoginScreen.route)
             },
             onSkipClicked = {
+                viewModel.onOnboardingComplete() // Delegate completion logic to ViewModel
                 navController.popBackStack()
                 navController.navigate(Screen.LoginScreen.route)
             }
@@ -106,6 +117,8 @@ fun OnboardingFooter(
     onSkipClicked: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
+    // NOTE: onBoardingPages is still referenced here for size/last page calculation,
+    // which is acceptable since it's a constant list from the domain layer.
     val isLastPage = pagerState.currentPage == onBoardingPages.size - 1
 
     Column(

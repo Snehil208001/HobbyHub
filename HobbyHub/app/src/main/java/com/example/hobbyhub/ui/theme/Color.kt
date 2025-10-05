@@ -9,3 +9,9 @@ val Pink80 = Color(0xFFEFB8C8)
 val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
+
+// ADDED: Application-specific colors to resolve conflicting declarations
+val EventHubPrimary = Color(0xFF5E54F3)
+val EventHubLightGray = Color(0xFFE0E0E0)
+val EventHubDarkText = Color(0xFF1E1E1E)
+val TagBackground = Color(0xFFF3F3FF) // Assuming this is also a shared color

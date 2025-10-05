@@ -38,38 +38,36 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage // <-- COIL IMPORT
 import com.example.hobbyhub.R
 import com.example.hobbyhub.core.navigations.Screen
+import com.example.hobbyhub.ui.theme.EventHubDarkText // ADDED IMPORT
+import com.example.hobbyhub.ui.theme.EventHubLightGray // ADDED IMPORT
+import com.example.hobbyhub.ui.theme.EventHubPrimary // ADDED IMPORT
+import com.example.hobbyhub.ui.theme.TagBackground // ADDED IMPORT
+import com.example.hobbyhub.mainui.signup.viewmodel.SignupViewModel // ADDED IMPORT
+import androidx.hilt.navigation.compose.hiltViewModel // ADDED IMPORT
 
-// Define colors to closely match the image (reused EventHub constants)
-val EventHubPrimary = Color(0xFF5E54F3)
-val EventHubLightGray = Color(0xFFE0E0E0)
-val EventHubDarkText = Color(0xFF1E1E1E)
-val TagBackground = Color(0xFFF3F3FF) // Light background for unselected tags
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignupScreen(navController: NavController) {
-    // --- PHOTO STATE ---
+fun SignupScreen(
+    navController: NavController,
+    viewModel: SignupViewModel = hiltViewModel() // INJECTED VIEWMODEL
+) {
+    // Collect UI State from ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+
+    // --- PHOTO STATE (Kept local as it deals with URI/Android lifecycle integration) ---
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Basic Auth & Profile Fields
-    var fullName by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
-
-    // Profile Setup State
-    val availableHobbyTags = remember {
-        listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
-    }
-    var selectedHobbyTags by remember { mutableStateOf(setOf<String>()) }
+    // Removed: Local state variables (fullName, email, password, etc. - now in ViewModel)
+    // Removed: availableHobbyTags (now in ViewModel)
+    // Removed: selectedHobbyTags (now in ViewModel)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // Apply systemBarsPadding for spacing from the status bar/notch (from previous fix)
             .padding(horizontal = 24.dp)
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical))
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -100,15 +98,13 @@ fun SignupScreen(navController: NavController) {
         )
 
         // ----------------------------------------------------
-        // --- 1. Upload Photo (Updated to pass state) ---
+        // --- 1. Upload Photo ---
         // ----------------------------------------------------
         ProfilePictureUploader(
             imageUri = selectedImageUri,
             onImageSelected = { uri ->
                 selectedImageUri = uri
                 // NOTE: This is where you would launch the CROP activity
-                // in a real app, passing 'uri' to it. The cropped result URI
-                // would then update 'selectedImageUri'.
             }
         )
         Spacer(modifier = Modifier.height(32.dp))
@@ -119,8 +115,8 @@ fun SignupScreen(navController: NavController) {
 
         // Full Name Input
         CustomTextField(
-            value = fullName,
-            onValueChange = { fullName = it },
+            value = uiState.fullName,
+            onValueChange = viewModel::onFullNameChange, // UPDATED: uses ViewModel
             placeholderText = "Full name",
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) }
         )
@@ -128,8 +124,8 @@ fun SignupScreen(navController: NavController) {
 
         // Email Input
         CustomTextField(
-            value = email,
-            onValueChange = { email = it },
+            value = uiState.email,
+            onValueChange = viewModel::onEmailChange, // UPDATED: uses ViewModel
             placeholderText = "abc@email.com",
             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) }
         )
@@ -137,8 +133,8 @@ fun SignupScreen(navController: NavController) {
 
         // City Input (New field from requirements)
         CustomTextField(
-            value = city,
-            onValueChange = { city = it },
+            value = uiState.city,
+            onValueChange = viewModel::onCityChange, // UPDATED: uses ViewModel
             placeholderText = "City (e.g., New York)",
             leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray) }
         )
@@ -146,14 +142,14 @@ fun SignupScreen(navController: NavController) {
 
         // Password Input
         CustomTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = uiState.password,
+            onValueChange = viewModel::onPasswordChange, // UPDATED: uses ViewModel
             placeholderText = "Your password",
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                IconButton(onClick = viewModel::togglePasswordVisibility) { // UPDATED: uses ViewModel
                     Icon(imageVector = image, contentDescription = "Toggle password visibility", tint = Color.Gray)
                 }
             }
@@ -162,14 +158,14 @@ fun SignupScreen(navController: NavController) {
 
         // Confirm Password Input
         CustomTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            value = uiState.confirmPassword,
+            onValueChange = viewModel::onConfirmPasswordChange, // UPDATED: uses ViewModel
             placeholderText = "Confirm password",
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (uiState.confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                val image = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                val image = if (uiState.confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                IconButton(onClick = viewModel::toggleConfirmPasswordVisibility) { // UPDATED: uses ViewModel
                     Icon(imageVector = image, contentDescription = "Toggle confirm password visibility", tint = Color.Gray)
                 }
             }
@@ -187,21 +183,16 @@ fun SignupScreen(navController: NavController) {
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
         )
         HobbyTagSelector(
-            availableTags = availableHobbyTags,
-            selectedTags = selectedHobbyTags,
-            onTagSelected = { tag ->
-                selectedHobbyTags = if (selectedHobbyTags.contains(tag)) {
-                    selectedHobbyTags - tag
-                } else {
-                    selectedHobbyTags + tag
-                }
-            }
+            availableTags = viewModel.availableHobbyTags, // UPDATED: uses ViewModel
+            selectedTags = uiState.selectedHobbyTags, // UPDATED: uses ViewModel
+            onTagSelected = viewModel::toggleHobbyTag // UPDATED: uses ViewModel
         )
         Spacer(modifier = Modifier.height(40.dp))
 
         // --- SIGN UP Button ---
         Button(
-            onClick = { /* TODO: Handle full signup and profile creation */ },
+            onClick = viewModel::onSignupClick, // UPDATED: uses ViewModel
+            enabled = uiState.isSignUpEnabled, // ADDED: Button is enabled/disabled by ViewModel state
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)

@@ -1,0 +1,149 @@
+package com.example.hobbyhub.mainui.login.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.hobbyhub.ui.theme.EventHubDarkText // ADDED IMPORT
+import com.example.hobbyhub.ui.theme.EventHubPrimary // ADDED IMPORT
+import androidx.hilt.navigation.compose.hiltViewModel // ADDED IMPORT
+import com.example.hobbyhub.mainui.login.viewmodel.ResetPasswordViewModel // ADDED IMPORT
+
+
+// REMOVED: Duplicate color definitions from this file.
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResetPasswordScreen(
+    navController: NavController,
+    viewModel: ResetPasswordViewModel = hiltViewModel() // INJECTED VIEWMODEL
+) {
+    // Collect UI state from ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Removed: var email by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+            // ADDED: Apply systemBarsPadding for spacing from the status bar/notch (from previous fix)
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical))
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // --- Back Arrow (Modified to use padding from WindowInsets) ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp), // Kept this padding for visual separation from the top edge
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { navController.popBackStack() }) { // Ensure back navigation works
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = EventHubDarkText
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // --- Title and Description ---
+        Text(
+            "Resset Password",
+            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
+            fontWeight = FontWeight.SemiBold,
+            color = EventHubDarkText,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+        )
+
+        Text(
+            "Please enter your email address to request a password reset",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Gray,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 40.dp)
+        )
+
+        // --- Email Input Field (Reusing CustomTextField structure) ---
+        CustomTextField(
+            value = uiState.email, // UPDATED: uses ViewModel state
+            onValueChange = viewModel::onEmailChange, // UPDATED: uses ViewModel handler
+            placeholderText = "abc@email.com",
+            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) }
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // --- SEND Button ---
+        Button(
+            onClick = viewModel::onSendClick, // UPDATED: uses ViewModel handler
+            enabled = uiState.isSendEnabled, // ADDED: Button is enabled/disabled by ViewModel state
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "SEND",
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Icon(Icons.Default.ArrowForward, contentDescription = "Send Reset Link")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+// Reused Helper Composable for Text Fields (Pill-shaped, no outline)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholderText: String,
+    leadingIcon: @Composable () -> Unit,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailingIcon: @Composable (() -> Unit)? = null
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholderText, color = Color.Gray) },
+        leadingIcon = leadingIcon,
+        visualTransformation = visualTransformation,
+        trailingIcon = trailingIcon,
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+            disabledContainerColor = Color.White,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            cursorColor = EventHubPrimary,
+            focusedTextColor = EventHubDarkText,
+            unfocusedTextColor = EventHubDarkText,
+        )
+    )
+}

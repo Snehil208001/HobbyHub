@@ -11,15 +11,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavController
+import androidx.hilt.navigation.compose.hiltViewModel // ADDED
 import com.example.hobbyhub.R
 import com.example.hobbyhub.core.navigations.Screen
-import kotlinx.coroutines.delay
+import com.example.hobbyhub.mainui.splashscreen.viewmodel.SplashScreenEvent // ADDED
+import com.example.hobbyhub.mainui.splashscreen.viewmodel.SplashScreenViewModel // ADDED
+import kotlinx.coroutines.delay // Removed (but kept the import for safe removal)
 
 @Composable
-fun SplashScreen(navController: NavController) {
-    var startAnimation by remember { mutableStateOf(false) }
+fun SplashScreen(
+    navController: NavController,
+    viewModel: SplashScreenViewModel = hiltViewModel() // INJECTED VIEWMODEL
+) {
+    // Collect the state from the ViewModel
+    val startAnimation by viewModel.startAnimation.collectAsState()
+    val navigationEvent by viewModel.navigationEvent.collectAsState()
+
+    // Animation logic remains in the Composable for UI-related state management
     val scale = animateFloatAsState(
-        // Change the target value to make the image larger
+        // Use the state from the ViewModel to drive the animation
         targetValue = if (startAnimation) 1.2f else 0.3f,
         animationSpec = tween(
             durationMillis = 800,
@@ -28,11 +38,12 @@ fun SplashScreen(navController: NavController) {
         label = "scaleAnimation"
     )
 
-    LaunchedEffect(key1 = true) {
-        startAnimation = true
-        delay(2000L) // Wait for 2 seconds
-        navController.popBackStack()
-        navController.navigate(Screen.OnboardingScreen.route)
+    // Side effect to handle navigation triggered by the ViewModel
+    LaunchedEffect(key1 = navigationEvent) {
+        if (navigationEvent is SplashScreenEvent.NavigateToOnboarding) {
+            navController.popBackStack()
+            navController.navigate(Screen.OnboardingScreen.route)
+        }
     }
 
     Box(

@@ -68,6 +68,9 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
 
+    // ADDED: Dependency for hiltViewModel() function in Compose Navigation
+    implementation(libs.androidx.hilt.navigation.compose)
+
 
     // 1. Image Loading (Coil)
     implementation("io.coil-kt:coil-compose:2.5.0")
