@@ -54,6 +54,10 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.play.services.location)
 
+    // Google Maps
+    implementation("com.google.maps.android:maps-compose:2.11.4")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -78,6 +82,9 @@ dependencies {
 
     // 2. Image Cropping Library (FIXED: Using correct GitHub/JitPack coordinates)
     implementation("com.github.ArthurHub:Android-Image-Cropper:2.8.0")
+
+    // 3. Accompanist Flow Layout
+    implementation("com.google.accompanist:accompanist-flowlayout:0.32.0")
 
     // Activity Result API for picking and cropping
     implementation("androidx.activity:activity-compose:1.8.1")

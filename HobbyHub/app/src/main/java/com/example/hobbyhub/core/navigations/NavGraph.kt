@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.hobbyhub.mainui.deletescreen.ui.DeleteAccountScreen
 import com.example.hobbyhub.mainui.explorescreen.ui.ExploreScreen
 import com.example.hobbyhub.mainui.groupsscreen.ui.GroupsScreen
 import com.example.hobbyhub.mainui.homescreen.ui.HomeScreen
@@ -53,7 +54,10 @@ fun SetupNavGraph(navController: NavHostController) {
             WorkshopsScreen()
         }
         composable(Screen.ProfileScreen.route) {
-            ProfileScreen()
+            ProfileScreen(navController)
+        }
+        composable(Screen.DeleteAccountScreen.route) {
+            DeleteAccountScreen(navController = navController)
         }
     }
 }

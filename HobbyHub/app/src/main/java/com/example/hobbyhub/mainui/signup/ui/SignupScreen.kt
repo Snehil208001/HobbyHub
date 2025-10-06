@@ -4,11 +4,24 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,9 +30,34 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,7 +65,6 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -38,22 +75,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.hobbyhub.R
 import com.example.hobbyhub.core.navigations.Screen
+import com.example.hobbyhub.mainui.profilescreen.viewmodel.ProfileViewModel
+import com.example.hobbyhub.mainui.signup.viewmodel.SignupViewModel
 import com.example.hobbyhub.ui.theme.EventHubDarkText
 import com.example.hobbyhub.ui.theme.EventHubLightGray
 import com.example.hobbyhub.ui.theme.EventHubPrimary
 import com.example.hobbyhub.ui.theme.TagBackground
-import com.example.hobbyhub.mainui.signup.viewmodel.SignupViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignupScreen(
     navController: NavController,
-    viewModel: SignupViewModel = hiltViewModel()
+    viewModel: SignupViewModel = hiltViewModel(),
+    profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val navigateToHome by viewModel.navigateToHome.collectAsState()
@@ -63,6 +101,8 @@ fun SignupScreen(
 
     LaunchedEffect(navigateToHome) {
         if (navigateToHome) {
+            profileViewModel.onNameChange(uiState.fullName)
+            profileViewModel.onProfileImageChange(selectedImageUri)
             navController.navigate(Screen.HomeScreen.route) {
                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
             }
@@ -101,7 +141,9 @@ fun SignupScreen(
             style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
             fontWeight = FontWeight.SemiBold,
             color = EventHubDarkText,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
         )
         ProfilePictureUploader(
             imageUri = selectedImageUri,
@@ -183,7 +225,9 @@ fun SignupScreen(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = EventHubDarkText,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp)
         )
         HobbyTagSelector(
             availableTags = viewModel.availableHobbyTags,
@@ -196,7 +240,9 @@ fun SignupScreen(
         Button(
             onClick = viewModel::onSignupClick,
             enabled = uiState.isSignUpEnabled,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)
         ) {
@@ -330,7 +376,9 @@ private fun CustomTextField(
         leadingIcon = leadingIcon,
         visualTransformation = visualTransformation,
         trailingIcon = trailingIcon,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
         shape = RoundedCornerShape(28.dp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.White,

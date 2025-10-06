@@ -40,6 +40,7 @@ import com.example.hobbyhub.domain.model.onBoardingPages // REMAINED for PageInd
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel // ADDED IMPORT
 import com.example.hobbyhub.mainui.onboardingscreen.viewmodel.OnboardingViewModel // ADDED IMPORT
+import androidx.navigation.NavGraph.Companion.findStartDestination
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -65,13 +66,19 @@ fun OnboardingScreen(
             pagerState = pagerState,
             onNextClicked = {
                 viewModel.onOnboardingComplete() // Delegate completion logic to ViewModel
-                navController.popBackStack() // Remove onboarding from the back stack
-                navController.navigate(Screen.LoginScreen.route)
+                navController.navigate(Screen.LoginScreen.route) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        inclusive = true
+                    }
+                }
             },
             onSkipClicked = {
                 viewModel.onOnboardingComplete() // Delegate completion logic to ViewModel
-                navController.popBackStack()
-                navController.navigate(Screen.LoginScreen.route)
+                navController.navigate(Screen.LoginScreen.route) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        inclusive = true
+                    }
+                }
             }
         )
     }

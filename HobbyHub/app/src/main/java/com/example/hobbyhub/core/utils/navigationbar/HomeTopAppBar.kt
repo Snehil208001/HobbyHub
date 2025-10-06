@@ -23,7 +23,10 @@ import com.example.hobbyhub.R
 import com.example.hobbyhub.ui.theme.EventHubPrimary
 
 @Composable
-fun HomeTopAppBar(location: String) { // UPDATED: Added location parameter
+fun HomeTopAppBar(
+    location: String,
+    onMenuClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -37,7 +40,7 @@ fun HomeTopAppBar(location: String) { // UPDATED: Added location parameter
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /* TODO: Handle menu click */ }) {
+            IconButton(onClick = onMenuClick) {
                 Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -50,7 +53,7 @@ fun HomeTopAppBar(location: String) { // UPDATED: Added location parameter
                         modifier = Modifier.size(16.dp)
                     )
                 }
-                Text(location, fontWeight = FontWeight.Bold, color = Color.White) // UPDATED
+                Text(location, fontWeight = FontWeight.Bold, color = Color.White)
             }
             IconButton(onClick = { /* TODO: Handle notifications click */ }) {
                 Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.White)
@@ -69,7 +72,7 @@ private fun HomeSearchBar() {
         value = "",
         onValueChange = {},
         modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Search...", color = Color.Gray) },
+        placeholder = { Text("Search for hobbies...", color = Color.Gray) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon", tint = Color.Gray) },
         trailingIcon = {
             Row(
