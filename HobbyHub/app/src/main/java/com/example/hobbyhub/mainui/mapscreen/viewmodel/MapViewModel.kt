@@ -32,7 +32,7 @@ data class HobbyLocation(
     val location: LatLng,
     val description: String,
     val category: String,
-    val icon: ImageVector // Added icon property
+    val icon: ImageVector // This property is now correctly added back
 )
 
 @HiltViewModel
