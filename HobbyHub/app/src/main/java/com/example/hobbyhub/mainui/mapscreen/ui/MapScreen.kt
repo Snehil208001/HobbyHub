@@ -1,6 +1,8 @@
 package com.example.hobbyhub.mainui.mapscreen.ui
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -11,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,6 +39,7 @@ import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     viewModel: MapViewModel = hiltViewModel()
@@ -80,20 +84,24 @@ fun MapScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // --- Combined Filtering Logic ---
+        val filteredLocations = mapState.hobbyLocations.filter { hobby ->
+            val categoryMatch = mapState.selectedCategory == null || hobby.category.equals(mapState.selectedCategory?.name, ignoreCase = true)
+            val searchMatch = mapState.searchQuery.isBlank() ||
+                    hobby.name.contains(mapState.searchQuery, ignoreCase = true) ||
+                    hobby.description.contains(mapState.searchQuery, ignoreCase = true) ||
+                    hobby.category.contains(mapState.searchQuery, ignoreCase = true)
+            categoryMatch && searchMatch
+        }
+
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = mapProperties,
             uiSettings = uiSettings,
             onMapClick = { viewModel.clearSelectedLocation() },
-            // ✅ This padding ensures the native map controls are not hidden
-            // by your custom UI at the bottom of the screen.
-            contentPadding = PaddingValues(bottom = 140.dp)
+            contentPadding = PaddingValues(bottom = 180.dp)
         ) {
-            val filteredLocations = mapState.hobbyLocations.filter {
-                mapState.selectedCategory == null || it.category == mapState.selectedCategory?.name
-            }
-
             filteredLocations.forEach { hobby ->
                 var bitmapDescriptor by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
 
@@ -124,6 +132,8 @@ fun MapScreen(
                 .padding(16.dp)
         ) {
             TopSearchBar(
+                query = mapState.searchQuery,
+                onQueryChanged = viewModel::onSearchQueryChanged,
                 onGpsClick = {
                     mapState.lastKnownLocation?.let { loc ->
                         coroutineScope.launch {
@@ -147,13 +157,18 @@ fun MapScreen(
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))
                 .padding(bottom = 16.dp),
-            locations = mapState.hobbyLocations
+            locations = filteredLocations
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopSearchBar(onGpsClick: () -> Unit) {
+fun TopSearchBar(
+    query: String,
+    onQueryChanged: (String) -> Unit,
+    onGpsClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -165,7 +180,19 @@ fun TopSearchBar(onGpsClick: () -> Unit) {
         IconButton(onClick = { /* Handle back */ }) {
             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
         }
-        Text("Find for food or restaurant...", color = Color.Gray, modifier = Modifier.weight(1f))
+        TextField(
+            value = query,
+            onValueChange = onQueryChanged,
+            placeholder = { Text("Find for food or restaurant...", color = Color.Gray) },
+            modifier = Modifier.weight(1f),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
         IconButton(onClick = onGpsClick) {
             Icon(Icons.Default.GpsFixed, contentDescription = "Current Location", tint = MaterialTheme.colorScheme.primary)
         }
@@ -232,6 +259,7 @@ fun HobbyList(modifier: Modifier = Modifier, locations: List<HobbyLocation>) {
 
 @Composable
 fun HobbyCard(location: HobbyLocation) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier.width(280.dp),
         shape = RoundedCornerShape(16.dp),
@@ -246,7 +274,7 @@ fun HobbyCard(location: HobbyLocation) {
                     .background(Color.LightGray)
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = location.dateTime,
                     color = MaterialTheme.colorScheme.primary,
@@ -257,6 +285,22 @@ fun HobbyCard(location: HobbyLocation) {
                 Text(location.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(location.description, color = Color.Gray, fontSize = 12.sp)
+            }
+            // --- Directions Button ---
+            IconButton(
+                onClick = {
+                    val gmmIntentUri = Uri.parse("google.navigation:q=${location.location.latitude},${location.location.longitude}")
+                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                    mapIntent.setPackage("com.google.android.apps.maps")
+                    context.startActivity(mapIntent)
+                },
+                modifier = Modifier.align(Alignment.Bottom)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Directions,
+                    contentDescription = "Get Directions",
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

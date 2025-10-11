@@ -18,6 +18,7 @@ import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,7 +27,8 @@ data class MapState(
     val hobbyLocations: List<HobbyLocation> = emptyList(),
     val selectedLocation: HobbyLocation? = null,
     val categories: List<Category> = emptyList(),
-    val selectedCategory: Category? = null
+    val selectedCategory: Category? = null,
+    val searchQuery: String = ""
 )
 
 data class HobbyLocation(
@@ -37,7 +39,7 @@ data class HobbyLocation(
     val category: String,
     val icon: ImageVector,
     val color: Color,
-    val dateTime: String // ✅ ADDED: Property for dynamic date and time
+    val dateTime: String
 )
 
 data class Category(
@@ -97,6 +99,10 @@ class MapViewModel @Inject constructor() : ViewModel() {
         }
     }
 
+    fun onSearchQueryChanged(query: String) {
+        _mapState.update { it.copy(searchQuery = query) }
+    }
+
     fun clearSelectedLocation() {
         viewModelScope.launch {
             _mapState.value = _mapState.value.copy(selectedLocation = null)
@@ -115,7 +121,6 @@ class MapViewModel @Inject constructor() : ViewModel() {
             _mapState.value = _mapState.value.copy(
                 categories = categories,
                 hobbyLocations = listOf(
-                    // ✅ ADDED: Sample dateTime for each location
                     HobbyLocation(1, "Central Park Painting", LatLng(40.785091, -73.968285), "Outdoor painting group.", "Art", Icons.Default.Brush, Color(0xFF4CAF50), "Wed, Oct 15 ・ 5:30 PM"),
                     HobbyLocation(2, "Brooklyn Bridge Photos", LatLng(40.706086, -73.996864), "Meetup for photographers.", "Photography", Icons.Default.CameraAlt, Color(0xFFFFC107), "Thu, Oct 16 ・ 10:00 AM"),
                     HobbyLocation(3, "Union Square Chess", LatLng(40.7359, -73.9911), "Casual chess games.", "Games", Icons.Default.SportsEsports, Color(0xFF9C27B0), "Fri, Oct 17 ・ 1:00 PM"),
