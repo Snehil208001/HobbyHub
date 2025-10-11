@@ -2,6 +2,7 @@ package com.example.hobbyhub.core.utils.navigationbar
 
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,7 +26,8 @@ import com.example.hobbyhub.ui.theme.EventHubPrimary
 @Composable
 fun HomeTopAppBar(
     location: String,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    onFilterClick: () -> Unit // Add this parameter
 ) {
     Column(
         modifier = Modifier
@@ -60,14 +62,13 @@ fun HomeTopAppBar(
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        HomeSearchBar()
+        HomeSearchBar(onFilterClick = onFilterClick) // Pass the click handler
     }
 }
-// Keep HomeSearchBar composable as is
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeSearchBar() {
+private fun HomeSearchBar(onFilterClick: () -> Unit) { // Add the parameter
     TextField(
         value = "",
         onValueChange = {},
@@ -77,7 +78,9 @@ private fun HomeSearchBar() {
         trailingIcon = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 8.dp)
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .clickable(onClick = onFilterClick) // Make the filter section clickable
             ) {
                 Divider(
                     modifier = Modifier

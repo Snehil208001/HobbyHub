@@ -13,4 +13,5 @@ sealed class Screen(val route: String) {
     object WorkshopsScreen : Screen("workshops_screen")
     object ProfileScreen : Screen("profile_screen")
     object DeleteAccountScreen : Screen("delete_account_screen")
+    object FilterScreen : Screen("filter_screen") // Add this line
 }

@@ -49,6 +49,12 @@ import com.example.hobbyhub.core.utils.navigationbar.LocationViewModel
 import com.example.hobbyhub.core.utils.navigationbar.SideAppBar
 import com.example.hobbyhub.mainui.profilescreen.viewmodel.ProfileViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.hobbyhub.mainui.filterscreen.ui.FilterScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +82,27 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    val filterSheetState = rememberModalBottomSheetState()
+    var showFilterSheet by remember { mutableStateOf(false) }
+
+    if (showFilterSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            sheetState = filterSheetState
+        ) {
+            FilterScreen(
+                onApplyClick = {
+                    scope.launch { filterSheetState.hide() }.invokeOnCompletion {
+                        if (!filterSheetState.isVisible) {
+                            showFilterSheet = false
+                        }
+                    }
+                },
+                currentLocation = location // Pass the location state here
+            )
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -90,6 +117,9 @@ fun HomeScreen(
                         scope.launch {
                             drawerState.open()
                         }
+                    },
+                    onFilterClick = {
+                        showFilterSheet = true
                     }
                 )
             },

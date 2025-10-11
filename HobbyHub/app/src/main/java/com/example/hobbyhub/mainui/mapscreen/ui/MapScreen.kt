@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.example.hobbyhub.R
 import com.example.hobbyhub.core.utils.composableToBitmapDescriptor
 import com.example.hobbyhub.mainui.mapscreen.viewmodel.Category
@@ -42,6 +43,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
+    navController: NavController, // Add NavController parameter
     viewModel: MapViewModel = hiltViewModel()
 ) {
     val mapState by viewModel.mapState.collectAsState()
@@ -51,6 +53,15 @@ fun MapScreen(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val parentComposition = rememberCompositionContext()
+
+    LaunchedEffect(mapState.lastKnownLocation) {
+        mapState.lastKnownLocation?.let {
+            cameraPositionState.animate(
+                update = CameraUpdateFactory.newLatLngZoom(it, 15f),
+                durationMs = 1500
+            )
+        }
+    }
 
     val mapStyle = remember { MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style) }
 
@@ -100,7 +111,7 @@ fun MapScreen(
             properties = mapProperties,
             uiSettings = uiSettings,
             onMapClick = { viewModel.clearSelectedLocation() },
-            contentPadding = PaddingValues(bottom = 180.dp)
+            contentPadding = PaddingValues(bottom = 220.dp)
         ) {
             filteredLocations.forEach { hobby ->
                 var bitmapDescriptor by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
@@ -142,7 +153,9 @@ fun MapScreen(
                             )
                         }
                     }
-                }
+                },
+                // Add the back button action
+                onBackClick = { navController.popBackStack() }
             )
             Spacer(modifier = Modifier.height(16.dp))
             FilterChips(
@@ -167,7 +180,8 @@ fun MapScreen(
 fun TopSearchBar(
     query: String,
     onQueryChanged: (String) -> Unit,
-    onGpsClick: () -> Unit
+    onGpsClick: () -> Unit,
+    onBackClick: () -> Unit // Add onBackClick parameter
 ) {
     Row(
         modifier = Modifier
@@ -177,13 +191,14 @@ fun TopSearchBar(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = { /* Handle back */ }) {
+        // Implement the onClick action
+        IconButton(onClick = onBackClick) {
             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
         }
         TextField(
             value = query,
             onValueChange = onQueryChanged,
-            placeholder = { Text("Find for food or restaurant...", color = Color.Gray) },
+            placeholder = { Text("Search for hobbies or activities...", color = Color.Gray) },
             modifier = Modifier.weight(1f),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,

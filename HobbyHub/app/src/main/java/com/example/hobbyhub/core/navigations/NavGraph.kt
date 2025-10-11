@@ -1,11 +1,16 @@
 package com.example.hobbyhub.core.navigations
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.hobbyhub.core.utils.navigationbar.LocationViewModel
 import com.example.hobbyhub.mainui.deletescreen.ui.DeleteAccountScreen
 import com.example.hobbyhub.mainui.explorescreen.ui.ExploreScreen
+import com.example.hobbyhub.mainui.filterscreen.ui.FilterScreen
 import com.example.hobbyhub.mainui.groupsscreen.ui.GroupsScreen
 import com.example.hobbyhub.mainui.homescreen.ui.HomeScreen
 import com.example.hobbyhub.mainui.login.ui.LoginScreen
@@ -19,6 +24,9 @@ import com.example.hobbyhub.mainui.workshopsscreen.ui.WorkshopsScreen
 
 @Composable
 fun SetupNavGraph(navController: NavHostController) {
+    val locationViewModel: LocationViewModel = hiltViewModel()
+    val location by locationViewModel.location.collectAsState()
+
     NavHost(
         navController = navController,
         startDestination = Screen.SplashScreen.route
@@ -39,7 +47,7 @@ fun SetupNavGraph(navController: NavHostController) {
             ResetPasswordScreen(navController = navController)
         }
         composable(Screen.HomeScreen.route) {
-            HomeScreen(navController = navController)
+            HomeScreen(navController = navController, locationViewModel = locationViewModel)
         }
         composable(Screen.ExploreScreen.route) {
             ExploreScreen()
@@ -48,7 +56,7 @@ fun SetupNavGraph(navController: NavHostController) {
             GroupsScreen()
         }
         composable(Screen.MapScreen.route) {
-            MapScreen()
+            MapScreen(navController = navController)
         }
         composable(Screen.WorkshopsScreen.route) {
             WorkshopsScreen()
@@ -58,6 +66,14 @@ fun SetupNavGraph(navController: NavHostController) {
         }
         composable(Screen.DeleteAccountScreen.route) {
             DeleteAccountScreen(navController = navController)
+        }
+        composable(Screen.FilterScreen.route) {
+            FilterScreen(
+                onApplyClick = {
+                    navController.popBackStack()
+                },
+                currentLocation = location
+            )
         }
     }
 }
