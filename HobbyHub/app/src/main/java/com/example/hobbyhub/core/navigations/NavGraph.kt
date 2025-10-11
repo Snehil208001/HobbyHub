@@ -8,16 +8,22 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.hobbyhub.core.utils.navigationbar.LocationViewModel
+import com.example.hobbyhub.mainui.bookmarkscreen.ui.BookmarkScreen
+import com.example.hobbyhub.mainui.calendarscreen.ui.CalendarScreen
+import com.example.hobbyhub.mainui.contactusscreen.ui.ContactUsScreen
 import com.example.hobbyhub.mainui.deletescreen.ui.DeleteAccountScreen
 import com.example.hobbyhub.mainui.explorescreen.ui.ExploreScreen
 import com.example.hobbyhub.mainui.filterscreen.ui.FilterScreen
 import com.example.hobbyhub.mainui.groupsscreen.ui.GroupsScreen
+import com.example.hobbyhub.mainui.helpscreen.ui.HelpScreen
 import com.example.hobbyhub.mainui.homescreen.ui.HomeScreen
 import com.example.hobbyhub.mainui.login.ui.LoginScreen
 import com.example.hobbyhub.mainui.login.ui.ResetPasswordScreen
 import com.example.hobbyhub.mainui.mapscreen.ui.MapScreen
+import com.example.hobbyhub.mainui.messagescreen.ui.MessageScreen
 import com.example.hobbyhub.mainui.onboardingscreen.ui.OnboardingScreen
 import com.example.hobbyhub.mainui.profilescreen.ui.ProfileScreen
+import com.example.hobbyhub.mainui.settingsscreen.ui.SettingsScreen
 import com.example.hobbyhub.mainui.signup.ui.SignupScreen
 import com.example.hobbyhub.mainui.splashscreen.ui.SplashScreen
 import com.example.hobbyhub.mainui.workshopsscreen.ui.WorkshopsScreen
@@ -50,16 +56,16 @@ fun SetupNavGraph(navController: NavHostController) {
             HomeScreen(navController = navController, locationViewModel = locationViewModel)
         }
         composable(Screen.ExploreScreen.route) {
-            ExploreScreen()
+            ExploreScreen(navController = navController)
         }
         composable(Screen.GroupsScreen.route) {
-            GroupsScreen()
+            GroupsScreen(navController = navController)
         }
         composable(Screen.MapScreen.route) {
             MapScreen(navController = navController)
         }
         composable(Screen.WorkshopsScreen.route) {
-            WorkshopsScreen()
+            WorkshopsScreen(navController = navController)
         }
         composable(Screen.ProfileScreen.route) {
             ProfileScreen(navController)
@@ -75,5 +81,27 @@ fun SetupNavGraph(navController: NavHostController) {
                 currentLocation = location
             )
         }
+        composable(Screen.MessageScreen.route) {
+            MessageScreen(navController = navController)
+        }
+
+        composable(Screen.CalendarScreen.route) {
+            CalendarScreen(navController = navController)
+        }
+
+        composable(Screen.BookmarkScreen.route) {
+            BookmarkScreen(navController = navController)
+        }
+
+        composable(Screen.ContactUsScreen.route) {
+            ContactUsScreen(navController = navController)
+        }
+        composable(Screen.SettingsScreen.route) {
+            SettingsScreen(navController = navController)
+        }
+        composable(Screen.HelpScreen.route) {
+            HelpScreen(navController = navController)
+        }
+
     }
 }

@@ -105,13 +105,13 @@ fun SideAppBar(
             }
 
             // Navigation Items
-            DrawerMenuItem(icon = Icons.Outlined.Person, text = "My Profile")
-            DrawerMenuItem(icon = Icons.Outlined.Message, text = "Message", hasBadge = true)
-            DrawerMenuItem(icon = Icons.Outlined.CalendarToday, text = "Calender")
-            DrawerMenuItem(icon = Icons.Outlined.BookmarkBorder, text = "Bookmark")
-            DrawerMenuItem(icon = Icons.Outlined.Email, text = "Contact Us")
-            DrawerMenuItem(icon = Icons.Outlined.Settings, text = "Settings")
-            DrawerMenuItem(icon = Icons.Outlined.HelpOutline, text = "Helps & FAQs")
+            DrawerMenuItem(icon = Icons.Outlined.Person, text = "My Profile", onClick = { navController.navigate(Screen.ProfileScreen.route)})
+            DrawerMenuItem(icon = Icons.Outlined.Message, text = "Message", hasBadge = true, onClick = { navController.navigate(Screen.MessageScreen.route)})
+            DrawerMenuItem(icon = Icons.Outlined.CalendarToday, text = "Calender", onClick = { navController.navigate(Screen.CalendarScreen.route) })
+            DrawerMenuItem(icon = Icons.Outlined.BookmarkBorder, text = "Bookmark", onClick = { navController.navigate(Screen.BookmarkScreen.route) })
+            DrawerMenuItem(icon = Icons.Outlined.Email, text = "Contact Us", onClick = { navController.navigate(Screen.ContactUsScreen.route) })
+            DrawerMenuItem(icon = Icons.Outlined.Settings, text = "Settings", onClick = { navController.navigate(Screen.SettingsScreen.route) })
+            DrawerMenuItem(icon = Icons.Outlined.HelpOutline, text = "Helps & FAQs", onClick = { navController.navigate(Screen.HelpScreen.route) })
 
             Spacer(modifier = Modifier.weight(1f))
 
