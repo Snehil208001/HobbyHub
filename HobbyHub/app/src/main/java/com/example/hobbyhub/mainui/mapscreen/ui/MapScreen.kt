@@ -4,31 +4,32 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-// Using Material 3 components
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.GpsFixed
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.hobbyhub.R
+import com.example.hobbyhub.core.utils.composableToBitmapDescriptor
+import com.example.hobbyhub.mainui.mapscreen.viewmodel.Category
+import com.example.hobbyhub.mainui.mapscreen.viewmodel.HobbyLocation
 import com.example.hobbyhub.mainui.mapscreen.viewmodel.MapViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
@@ -41,29 +42,27 @@ fun MapScreen(
 ) {
     val mapState by viewModel.mapState.collectAsState()
     val cameraPositionState = rememberCameraPositionState {
-        // Initial position set to a default for testing/first load (e.g., NYC)
         position = CameraPosition.fromLatLngZoom(LatLng(40.7128, -74.0060), 12f)
     }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val parentComposition = rememberCompositionContext()
 
-    // Load the custom map style from res/raw/map_style.json
-    // NOTE: Ensure you have a 'map_style.json' file in your 'res/raw/' directory.
     val mapStyle = remember { MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style) }
 
     val mapProperties by remember {
         mutableStateOf(
             MapProperties(
-                isMyLocationEnabled = false,
-                mapStyleOptions = mapStyle // Apply the custom style
+                mapStyleOptions = mapStyle,
+                isMyLocationEnabled = true
             )
         )
     }
+
     val uiSettings by remember {
         mutableStateOf(
             MapUiSettings(
-                zoomGesturesEnabled = true,
-                zoomControlsEnabled = false,
+                zoomControlsEnabled = true,
                 myLocationButtonEnabled = true
             )
         )
@@ -72,156 +71,192 @@ fun MapScreen(
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
-            if (isGranted) {
-                viewModel.getDeviceLocation(context)
-            }
+            if (isGranted) viewModel.getDeviceLocation(context)
         }
     )
 
-    // Launch permission request when the screen is first composed
     LaunchedEffect(Unit) {
         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
-    // Animate camera to the user's last known location when it becomes available
-    LaunchedEffect(mapState.lastKnownLocation) {
-        mapState.lastKnownLocation?.let {
-            coroutineScope.launch {
-                cameraPositionState.animate(
-                    update = CameraUpdateFactory.newLatLngZoom(it, 15f),
-                    durationMs = 1000
-                )
-            }
-        }
-    }
-
-    // A deep purple color to match the app's theme
-    val appPrimaryColor = Color(0xFF673AB7)
-
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Google Map
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = mapProperties,
             uiSettings = uiSettings,
-            // Clear the selected location when the user clicks anywhere on the map
-            onMapClick = { viewModel.clearSelectedLocation() }
+            onMapClick = { viewModel.clearSelectedLocation() },
+            // ✅ This padding ensures the native map controls are not hidden
+            // by your custom UI at the bottom of the screen.
+            contentPadding = PaddingValues(bottom = 140.dp)
         ) {
-            mapState.hobbyLocations.forEach { hobby ->
-                Marker(
-                    state = MarkerState(position = hobby.location),
-                    title = hobby.name,
-                    snippet = hobby.description,
-                    // Use different colored default markers based on category
-                    icon = BitmapDescriptorFactory.defaultMarker(
-                        when (hobby.category) {
-                            "Sports" -> BitmapDescriptorFactory.HUE_ORANGE
-                            "Music" -> BitmapDescriptorFactory.HUE_BLUE
-                            "Art" -> BitmapDescriptorFactory.HUE_GREEN
-                            "Photography" -> BitmapDescriptorFactory.HUE_YELLOW
-                            "Games" -> BitmapDescriptorFactory.HUE_MAGENTA
-                            else -> BitmapDescriptorFactory.HUE_RED
-                        }
-                    ),
-                    onClick = {
-                        viewModel.onMarkerClick(hobby)
-                        false // Return false to show the default info window on click
+            val filteredLocations = mapState.hobbyLocations.filter {
+                mapState.selectedCategory == null || it.category == mapState.selectedCategory?.name
+            }
+
+            filteredLocations.forEach { hobby ->
+                var bitmapDescriptor by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
+
+                LaunchedEffect(hobby.icon) {
+                    bitmapDescriptor = composableToBitmapDescriptor(context, parentComposition) {
+                        HobbyMarkerIcon(icon = hobby.icon, color = hobby.color)
                     }
-                )
+                }
+
+                bitmapDescriptor?.let {
+                    Marker(
+                        state = MarkerState(position = hobby.location),
+                        title = hobby.name,
+                        icon = it,
+                        onClick = {
+                            viewModel.onMarkerClick(hobby)
+                            false
+                        }
+                    )
+                }
             }
         }
 
-        // 2. Custom Search Bar UI (Matches the overall app theme)
-        Card(
+        Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp, start = 16.dp, end = 16.dp)
-                .fillMaxWidth(),
-            // FIX: Use CardDefaults.cardElevation for Material 3 Card
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White) // M3 way to set background color
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+                .padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = appPrimaryColor,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = "Search for hobbies...",
-                    color = Color.Gray,
-                    modifier = Modifier.weight(1f)
-                )
-                // Filters button styled like the one in the main screen image
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(appPrimaryColor)
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "Filters",
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
+            TopSearchBar(
+                onGpsClick = {
+                    mapState.lastKnownLocation?.let { loc ->
+                        coroutineScope.launch {
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newLatLngZoom(loc, 15f)
+                            )
+                        }
+                    }
                 }
-            }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            FilterChips(
+                categories = mapState.categories,
+                selectedCategory = mapState.selectedCategory,
+                onCategorySelected = viewModel::onCategorySelected
+            )
         }
 
-        // 3. Location Detail Card (Appears when a marker is clicked)
-        mapState.selectedLocation?.let { location ->
-            Card(
+        HobbyList(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))
+                .padding(bottom = 16.dp),
+            locations = mapState.hobbyLocations
+        )
+    }
+}
+
+@Composable
+fun TopSearchBar(onGpsClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(50))
+            .background(Color.White)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = { /* Handle back */ }) {
+            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+        }
+        Text("Find for food or restaurant...", color = Color.Gray, modifier = Modifier.weight(1f))
+        IconButton(onClick = onGpsClick) {
+            Icon(Icons.Default.GpsFixed, contentDescription = "Current Location", tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterChips(
+    categories: List<Category>,
+    selectedCategory: Category?,
+    onCategorySelected: (Category) -> Unit
+) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(categories) { category ->
+            val isSelected = category == selectedCategory
+            FilterChip(
+                selected = isSelected,
+                onClick = { onCategorySelected(category) },
+                label = { Text(category.name) },
+                leadingIcon = { Icon(category.icon, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                shape = RoundedCornerShape(50),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = Color.White,
+                    selectedLeadingIconColor = Color.White
+                )
+            )
+        }
+    }
+}
+
+@Composable
+fun HobbyMarkerIcon(icon: ImageVector, color: Color) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(color)
+            .padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+fun HobbyList(modifier: Modifier = Modifier, locations: List<HobbyLocation>) {
+    LazyRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp)
+    ) {
+        items(locations) { location ->
+            HobbyCard(location)
+        }
+    }
+}
+
+@Composable
+fun HobbyCard(location: HobbyLocation) {
+    Card(
+        modifier = Modifier.width(280.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(modifier = Modifier.padding(12.dp)) {
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    // Move up above the bottom navigation bar
-                    .padding(bottom = 90.dp, start = 20.dp, end = 20.dp)
-                    .fillMaxWidth(),
-                // FIX: Use CardDefaults.cardElevation for Material 3 Card
-                elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White) // M3 way to set background color
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = location.name,
-                            // M3 typography equivalent for h6 is headlineSmall
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = appPrimaryColor
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close details",
-                            tint = Color.Gray,
-                            modifier = Modifier.clickable { viewModel.clearSelectedLocation() }
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Category: ${location.category}",
-                        // M3 typography equivalent for subtitle2 is labelMedium
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = location.description,
-                        // M3 typography equivalent for body2 is bodyMedium
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.LightGray)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = location.dateTime,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(location.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(location.description, color = Color.Gray, fontSize = 12.sp)
             }
         }
     }
