@@ -39,13 +39,14 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11" // This is compatible with Kotlin 1.9.23
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 }
 
 dependencies {
     // Force update to newer kotlinx-metadata-jvm that supports Kotlin 1.9+
-    implementation(libs.kotlinx.metadata.jvm) // <-- THE CRUCIAL FIX
+    implementation(libs.kotlinx.metadata.jvm)
+    kapt(libs.kotlinx.metadata.jvm)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
