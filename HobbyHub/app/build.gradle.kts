@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.example.hobbyhub"
-    compileSdk = 34
+    compileSdk = 35 // <-- ENSURE THIS IS 35
 
     defaultConfig {
         applicationId = "com.example.hobbyhub"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35 // <-- ENSURE THIS IS 35
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -39,7 +39,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
+        kotlinCompilerExtensionVersion = "1.5.14" // <-- ENSURE THIS IS 1.5.14
     }
 }
 
@@ -100,8 +100,8 @@ dependencies {
 
 
     // Supabase
-    implementation(platform("io.github.jan-tennert.supabase:bom:2.5.3"))
-    implementation("io.github.jan-tennert.supabase:gotrue-kt")
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.2.4"))
+    implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:realtime-kt")
 

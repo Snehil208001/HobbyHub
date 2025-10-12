@@ -1,17 +1,18 @@
 package com.example.hobbyhub.data
 
-import com.example.hobbyhub.supabase
-import io.github.jan.supabase.gotrue.gotrue
-import io.github.jan.supabase.gotrue.providers.builtin.Email
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth // <-- UPDATED IMPORT
+import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 /**
  * Repository for handling authentication-related operations.
  *
  * This class provides methods for signing up and logging in users with Supabase.
  */
-class AuthRepository {
+class AuthRepository @Inject constructor(private val supabase: SupabaseClient) {
 
     /**
      * Signs up a new user with the provided email and password.
@@ -21,7 +22,7 @@ class AuthRepository {
      */
     suspend fun signUp(email: String, password: String) {
         withContext(Dispatchers.IO) {
-            supabase.gotrue.signUpWith(Email) {
+            supabase.auth.signUpWith(Email) { // <-- UPDATED USAGE
                 this.email = email
                 this.password = password
             }
@@ -36,7 +37,7 @@ class AuthRepository {
      */
     suspend fun login(email: String, password: String) {
         withContext(Dispatchers.IO) {
-            supabase.gotrue.signInWith(Email) {
+            supabase.auth.signInWith(Email) { // <-- UPDATED USAGE
                 this.email = email
                 this.password = password
             }

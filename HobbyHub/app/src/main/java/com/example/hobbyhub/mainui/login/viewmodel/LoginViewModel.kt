@@ -20,14 +20,13 @@ data class LoginUiState(
 )
 
 @HiltViewModel
-class LoginViewModel @Inject constructor() : ViewModel() {
+class LoginViewModel @Inject constructor(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState
 
     private val _navigateToHome = MutableStateFlow(false)
     val navigateToHome = _navigateToHome.asStateFlow()
-    private val authRepository = AuthRepository()
 
     fun onEmailChange(newEmail: String) {
         _uiState.update { it.copy(email = newEmail) }
@@ -47,11 +46,14 @@ class LoginViewModel @Inject constructor() : ViewModel() {
 
     fun onLoginClick() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoginEnabled = false) } // Disable button during login attempt
             try {
                 authRepository.login(uiState.value.email, uiState.value.password)
                 _navigateToHome.value = true
             } catch (e: Exception) {
-                // Handle login error
+                // Handle login error (e.g., show a toast or a snackbar)
+                println("Login failed: ${e.message}")
+                _uiState.update { it.copy(isLoginEnabled = true) } // Re-enable button on failure
             }
         }
     }

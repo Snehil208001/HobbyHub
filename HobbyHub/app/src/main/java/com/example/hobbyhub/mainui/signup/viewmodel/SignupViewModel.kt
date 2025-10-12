@@ -24,7 +24,7 @@ data class SignupUiState(
 )
 
 @HiltViewModel
-class SignupViewModel @Inject constructor() : ViewModel() {
+class SignupViewModel @Inject constructor(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignupUiState())
     val uiState: StateFlow<SignupUiState> = _uiState
@@ -33,7 +33,6 @@ class SignupViewModel @Inject constructor() : ViewModel() {
     val navigateToHome = _navigateToHome.asStateFlow()
     val availableHobbyTags =
         listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
-    private val authRepository = AuthRepository()
 
     fun onFullNameChange(newFullName: String) {
         _uiState.update { it.copy(fullName = newFullName) }
@@ -76,11 +75,14 @@ class SignupViewModel @Inject constructor() : ViewModel() {
 
     fun onSignupClick() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isSignUpEnabled = false) } // Disable button during signup
             try {
                 authRepository.signUp(uiState.value.email, uiState.value.password)
                 _navigateToHome.value = true
             } catch (e: Exception) {
-                // Handle signup error
+                // Handle signup error (e.g., show a toast or a snackbar)
+                println("Signup failed: ${e.message}")
+                _uiState.update { it.copy(isSignUpEnabled = true) } // Re-enable button on failure
             }
         }
     }
