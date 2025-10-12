@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.dagger.hilt.android)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -18,6 +19,7 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+
     }
 
     buildTypes {
@@ -29,6 +31,7 @@ android {
             )
         }
     }
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -53,6 +56,7 @@ dependencies {
     implementation(libs.androidx.material3)
 
 
+
     // This line explicitly adds the icon library to your app
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.play.services.location)
@@ -60,6 +64,10 @@ dependencies {
     // Google Maps
     implementation("com.google.maps.android:maps-compose:2.11.4")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -77,6 +85,7 @@ dependencies {
     kapt(libs.hilt.android.compiler)
 
     // Dependency for hiltViewModel() function in Compose
+
     implementation(libs.androidx.hilt.navigation.compose)
 
 

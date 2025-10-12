@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "442341889469",
+    "project_id": "hobbyhub-16378",
+    "storage_bucket": "hobbyhub-16378.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:442341889469:android:22a53d2700b14966c86ed4",
+        "android_client_info": {
+          "package_name": "com.example.hobbyhub"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "442341889469-d3u6vu24hku9mf8tbrht8oqags84q38i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hobbyhub",
+            "certificate_hash": "70141e45096fc8f6a74228fbc3344019064d4b00"
+          }
+        },
+        {
+          "client_id": "442341889469-7pm1rtsko0ubo1tv9go2cc82fcad99o2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAte5Ix-_oWbZujxAgFwIaG1BF6KcxA6ic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "442341889469-7pm1rtsko0ubo1tv9go2cc82fcad99o2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

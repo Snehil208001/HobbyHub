@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">HobbyHub</string>
+    <string name="your_web_client_id">PASTE_YOUR_WEB_CLIENT_ID_HERE</string>
 </resources>

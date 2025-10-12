@@ -2,9 +2,10 @@ package com.example.hobbyhub.mainui.signup.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.hobbyhub.data.AuthRepository
+import com.example.hobbyhub.data.SignInState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -23,13 +24,15 @@ data class SignupUiState(
 )
 
 @HiltViewModel
-class SignupViewModel @Inject constructor() : ViewModel() {
+class SignupViewModel @Inject constructor(
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignupUiState())
-    val uiState: StateFlow<SignupUiState> = _uiState
+    val uiState = _uiState.asStateFlow()
 
-    private val _navigateToHome = MutableStateFlow(false)
-    val navigateToHome = _navigateToHome.asStateFlow()
+    private val _signUpState = MutableStateFlow(SignInState())
+    val signUpState = _signUpState.asStateFlow()
 
     val availableHobbyTags = listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
 
@@ -73,13 +76,22 @@ class SignupViewModel @Inject constructor() : ViewModel() {
     }
 
     fun onSignupClick() {
-        // In a real app, you would perform registration here.
         viewModelScope.launch {
-            _navigateToHome.value = true
+            _signUpState.update { it.copy(isLoading = true) }
+            try {
+                val state = _uiState.value
+                if (state.password != state.confirmPassword) {
+                    throw Exception("Passwords do not match.")
+                }
+                authRepository.createUserWithEmailAndPassword(state.email, state.password)
+                _signUpState.update { it.copy(isLoading = false, isSuccess = true) }
+            } catch (e: Exception) {
+                _signUpState.update { it.copy(isLoading = false, error = e.message) }
+            }
         }
     }
 
-    fun onNavigatedToHome() {
-        _navigateToHome.value = false
+    fun resetState() {
+        _signUpState.value = SignInState()
     }
 }

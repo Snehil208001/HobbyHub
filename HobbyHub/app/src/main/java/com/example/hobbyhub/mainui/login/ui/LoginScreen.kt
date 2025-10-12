@@ -1,5 +1,9 @@
 package com.example.hobbyhub.mainui.login.ui
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,8 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -32,14 +38,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.hobbyhub.R
 import com.example.hobbyhub.core.navigations.Screen
+import com.example.hobbyhub.mainui.login.viewmodel.LoginViewModel
 import com.example.hobbyhub.ui.theme.EventHubDarkText
 import com.example.hobbyhub.ui.theme.EventHubLightGray
 import com.example.hobbyhub.ui.theme.EventHubPrimary
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.hobbyhub.mainui.login.viewmodel.LoginViewModel
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -47,143 +60,197 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val navigateToHome by viewModel.navigateToHome.collectAsState()
+    val signInState by viewModel.signInState.collectAsState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(navigateToHome) {
-        if (navigateToHome) {
-            navController.navigate(Screen.HomeScreen.route) {
-                // Clear the back stack to prevent going back to login
-                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult(),
+        onResult = { result ->
+            try {
+                val credential = CredentialManager.create(context).getCredentialFromIntent(result.data!!)
+                val googleIdToken = (credential.credential as GoogleIdTokenCredential).idToken
+                viewModel.onGoogleSignIn(googleIdToken)
+            } catch (e: GoogleIdTokenParsingException) {
+                Toast.makeText(context, "Google Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
-            viewModel.onNavigatedToHome() // Reset the state
+        }
+    )
+
+    fun launchGoogleSignIn() = coroutineScope.launch {
+        val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(context.getString(R.string.your_web_client_id))
+            .build()
+
+        val request: GetCredentialRequest = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        try {
+            val result = CredentialManager.create(context).getCredential(context, request)
+            val googleIdToken = (result.credential as GoogleIdTokenCredential).idToken
+            viewModel.onGoogleSignIn(googleIdToken)
+        } catch (e: GetCredentialException) {
+            val pendingIntent = e.entries.firstOrNull()?.pendingIntent
+            if (pendingIntent != null) {
+                launcher.launch(IntentSenderRequest.Builder(pendingIntent).build())
+            } else {
+                Toast.makeText(context, "Google Sign-In failed.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(80.dp))
 
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "HobbyHub Logo",
-            modifier = Modifier.size(50.dp)
-        )
-        Text(
-            "HobbyHub",
-            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp),
-            fontWeight = FontWeight.SemiBold,
-            color = EventHubDarkText
-        )
-        Spacer(modifier = Modifier.height(64.dp))
-
-        Text(
-            "Sign in",
-            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
-            fontWeight = FontWeight.SemiBold,
-            color = EventHubDarkText,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-        )
-
-        CustomTextField(
-            value = uiState.email,
-            onValueChange = viewModel::onEmailChange,
-            placeholderText = "abc@email.com",
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        CustomTextField(
-            value = uiState.password,
-            onValueChange = viewModel::onPasswordChange,
-            placeholderText = "Your password",
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-            visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = viewModel::togglePasswordVisibility) {
-                    Icon(imageVector = image, contentDescription = "Toggle password visibility", tint = Color.Gray)
-                }
-            },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = uiState.rememberMe,
-                    onCheckedChange = viewModel::onRememberMeToggle,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = EventHubPrimary,
-                        uncheckedThumbColor = Color.LightGray,
-                        uncheckedTrackColor = EventHubLightGray
-                    )
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Remember Me", color = EventHubDarkText)
+    LaunchedEffect(signInState) {
+        if (signInState.isSuccess) {
+            Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
+            navController.navigate(Screen.HomeScreen.route) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
             }
-            TextButton(
-                onClick = { navController.navigate(Screen.ResetPasswordScreen.route) },
-                contentPadding = PaddingValues(0.dp)
+            viewModel.resetState()
+        }
+        signInState.error?.let {
+            Toast.makeText(context, "Error: $it", Toast.LENGTH_LONG).show()
+            viewModel.resetState()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(80.dp))
+
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "HobbyHub Logo",
+                modifier = Modifier.size(50.dp)
+            )
+            Text(
+                "HobbyHub",
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp),
+                fontWeight = FontWeight.SemiBold,
+                color = EventHubDarkText
+            )
+            Spacer(modifier = Modifier.height(64.dp))
+
+            Text(
+                "Sign in",
+                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
+                fontWeight = FontWeight.SemiBold,
+                color = EventHubDarkText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+
+            CustomTextField(
+                value = uiState.email,
+                onValueChange = viewModel::onEmailChange,
+                placeholderText = "abc@email.com",
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            CustomTextField(
+                value = uiState.password,
+                onValueChange = viewModel::onPasswordChange,
+                placeholderText = "Your password",
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
+                visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    IconButton(onClick = viewModel::togglePasswordVisibility) {
+                        Icon(imageVector = image, contentDescription = "Toggle password visibility", tint = Color.Gray)
+                    }
+                },
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Forgot Password?", color = EventHubPrimary, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = uiState.rememberMe,
+                        onCheckedChange = viewModel::onRememberMeToggle,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = EventHubPrimary,
+                            uncheckedThumbColor = Color.LightGray,
+                            uncheckedTrackColor = EventHubLightGray
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Remember Me", color = EventHubDarkText)
+                }
+                TextButton(
+                    onClick = { navController.navigate(Screen.ResetPasswordScreen.route) },
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("Forgot Password?", color = EventHubPrimary, fontWeight = FontWeight.SemiBold)
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        Button(
-            onClick = viewModel::onLoginClick,
-            enabled = uiState.isLoginEnabled,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(50),
-            colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "SIGN IN",
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                Icon(Icons.Default.ArrowForward, contentDescription = "Sign In")
+            Button(
+                onClick = viewModel::onLoginClick,
+                enabled = !signInState.isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "SIGN IN",
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Icon(Icons.Default.ArrowForward, contentDescription = "Sign In")
+                }
             }
+            Spacer(modifier = Modifier.height(32.dp))
+
+            DividerWithText()
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            SocialLoginButton(
+                icon = R.drawable.ic_google,
+                text = "Login with Google",
+                onClick = { launchGoogleSignIn() }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            SocialLoginButton(
+                icon = R.drawable.ic_facebook,
+                text = "Login with Facebook",
+                onClick = { /* TODO */ }
+            )
+            Spacer(modifier = Modifier.weight(1f))
+
+            SignUpLink(navController)
+            Spacer(modifier = Modifier.height(24.dp))
         }
-        Spacer(modifier = Modifier.height(32.dp))
 
-        DividerWithText()
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        SocialLoginButton(
-            icon = R.drawable.ic_google,
-            text = "Login with Google",
-            onClick = { /* TODO */ }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        SocialLoginButton(
-            icon = R.drawable.ic_facebook,
-            text = "Login with Facebook",
-            onClick = { /* TODO */ }
-        )
-        Spacer(modifier = Modifier.weight(1f))
-
-        SignUpLink(navController)
-        Spacer(modifier = Modifier.height(24.dp))
+        if (signInState.isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        }
     }
 }
 // Keep the rest of the file (CustomTextField, SocialLoginButton, etc.) as is
@@ -206,7 +273,9 @@ private fun CustomTextField(
         leadingIcon = leadingIcon,
         visualTransformation = visualTransformation,
         trailingIcon = trailingIcon,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
         shape = RoundedCornerShape(28.dp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.White,
@@ -233,7 +302,9 @@ fun SocialLoginButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(56.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp),
         shape = RoundedCornerShape(50),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color.White,

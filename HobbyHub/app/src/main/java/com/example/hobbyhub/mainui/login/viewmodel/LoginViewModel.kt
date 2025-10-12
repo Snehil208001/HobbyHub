@@ -2,9 +2,10 @@ package com.example.hobbyhub.mainui.login.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.hobbyhub.data.AuthRepository
+import com.example.hobbyhub.data.SignInState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -19,13 +20,15 @@ data class LoginUiState(
 )
 
 @HiltViewModel
-class LoginViewModel @Inject constructor() : ViewModel() {
+class LoginViewModel @Inject constructor(
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
-    val uiState: StateFlow<LoginUiState> = _uiState
+    val uiState = _uiState.asStateFlow()
 
-    private val _navigateToHome = MutableStateFlow(false)
-    val navigateToHome = _navigateToHome.asStateFlow()
+    private val _signInState = MutableStateFlow(SignInState())
+    val signInState = _signInState.asStateFlow()
 
     fun onEmailChange(newEmail: String) {
         _uiState.update { it.copy(email = newEmail) }
@@ -44,14 +47,30 @@ class LoginViewModel @Inject constructor() : ViewModel() {
     }
 
     fun onLoginClick() {
-        // In a real app, you would perform authentication here.
-        // For now, we'll just trigger the navigation.
         viewModelScope.launch {
-            _navigateToHome.value = true
+            _signInState.update { it.copy(isLoading = true) }
+            try {
+                authRepository.signInWithEmailAndPassword(_uiState.value.email, _uiState.value.password)
+                _signInState.update { it.copy(isLoading = false, isSuccess = true) }
+            } catch (e: Exception) {
+                _signInState.update { it.copy(isLoading = false, error = e.message) }
+            }
         }
     }
 
-    fun onNavigatedToHome() {
-        _navigateToHome.value = false
+    fun onGoogleSignIn(idToken: String) {
+        viewModelScope.launch {
+            _signInState.update { it.copy(isLoading = true) }
+            try {
+                authRepository.signInWithGoogle(idToken)
+                _signInState.update { it.copy(isLoading = false, isSuccess = true) }
+            } catch (e: Exception) {
+                _signInState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun resetState() {
+        _signInState.value = SignInState()
     }
 }
