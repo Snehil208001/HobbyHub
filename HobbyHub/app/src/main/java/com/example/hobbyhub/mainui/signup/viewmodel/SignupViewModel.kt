@@ -2,7 +2,6 @@ package com.example.hobbyhub.mainui.signup.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.hobbyhub.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,15 +23,15 @@ data class SignupUiState(
 )
 
 @HiltViewModel
-class SignupViewModel @Inject constructor(private val authRepository: AuthRepository) : ViewModel() {
+class SignupViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignupUiState())
     val uiState: StateFlow<SignupUiState> = _uiState
 
     private val _navigateToHome = MutableStateFlow(false)
     val navigateToHome = _navigateToHome.asStateFlow()
-    val availableHobbyTags =
-        listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
+
+    val availableHobbyTags = listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
 
     fun onFullNameChange(newFullName: String) {
         _uiState.update { it.copy(fullName = newFullName) }
@@ -74,16 +73,9 @@ class SignupViewModel @Inject constructor(private val authRepository: AuthReposi
     }
 
     fun onSignupClick() {
+        // In a real app, you would perform registration here.
         viewModelScope.launch {
-            _uiState.update { it.copy(isSignUpEnabled = false) } // Disable button during signup
-            try {
-                authRepository.signUp(uiState.value.email, uiState.value.password)
-                _navigateToHome.value = true
-            } catch (e: Exception) {
-                // Handle signup error (e.g., show a toast or a snackbar)
-                println("Signup failed: ${e.message}")
-                _uiState.update { it.copy(isSignUpEnabled = true) } // Re-enable button on failure
-            }
+            _navigateToHome.value = true
         }
     }
 

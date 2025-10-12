@@ -2,7 +2,6 @@ package com.example.hobbyhub.mainui.login.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.hobbyhub.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +19,7 @@ data class LoginUiState(
 )
 
 @HiltViewModel
-class LoginViewModel @Inject constructor(private val authRepository: AuthRepository) : ViewModel() {
+class LoginViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState
@@ -45,16 +44,10 @@ class LoginViewModel @Inject constructor(private val authRepository: AuthReposit
     }
 
     fun onLoginClick() {
+        // In a real app, you would perform authentication here.
+        // For now, we'll just trigger the navigation.
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoginEnabled = false) } // Disable button during login attempt
-            try {
-                authRepository.login(uiState.value.email, uiState.value.password)
-                _navigateToHome.value = true
-            } catch (e: Exception) {
-                // Handle login error (e.g., show a toast or a snackbar)
-                println("Login failed: ${e.message}")
-                _uiState.update { it.copy(isLoginEnabled = true) } // Re-enable button on failure
-            }
+            _navigateToHome.value = true
         }
     }
 

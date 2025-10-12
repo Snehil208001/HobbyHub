@@ -1,19 +1,19 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.dagger.hilt.android)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
     namespace = "com.example.hobbyhub"
-    compileSdk = 35 // <-- ENSURE THIS IS 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.hobbyhub"
         minSdk = 24
-        targetSdk = 35 // <-- ENSURE THIS IS 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -29,24 +29,18 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "11"
     }
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14" // <-- ENSURE THIS IS 1.5.14
-    }
 }
 
 dependencies {
-    // Force update to newer kotlinx-metadata-jvm that supports Kotlin 1.9+
-    implementation(libs.kotlinx.metadata.jvm)
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -72,7 +66,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    val nav_version = "2.7.7"
+    val nav_version = "2.9.5"
     implementation("androidx.navigation:navigation-compose:$nav_version")
 
     // Hilt Dependencies
@@ -90,22 +84,11 @@ dependencies {
     implementation("com.github.ArthurHub:Android-Image-Cropper:2.8.0")
 
     // 3. Accompanist Flow Layout
-    implementation("com.google.accompanist:accompanist-flowlayout:0.34.0")
+    implementation("com.google.accompanist:accompanist-flowlayout:0.32.0")
 
     // Activity Result API for picking and cropping
-    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.activity:activity-compose:1.8.1")
 
     // 🔑 FIXED: Explicitly add appcompat to provide the required XML themes
     implementation("androidx.appcompat:appcompat:1.6.1")
-
-
-    // Supabase
-    implementation(platform("io.github.jan-tennert.supabase:bom:3.2.4"))
-    implementation("io.github.jan-tennert.supabase:auth-kt")
-    implementation("io.github.jan-tennert.supabase:postgrest-kt")
-    implementation("io.github.jan-tennert.supabase:realtime-kt")
-
-
-    //ktor-client
-    implementation("io.ktor:ktor-client-android:2.3.9")
 }
