@@ -1,8 +1,8 @@
 package com.example.hobbyhub.data
 
 import com.example.hobbyhub.supabase
-import io.github.jan.supabase.auth.OtpType
-import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.gotrue.gotrue
+import io.github.jan.supabase.gotrue.providers.builtin.Email
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -21,7 +21,7 @@ class AuthRepository {
      */
     suspend fun signUp(email: String, password: String) {
         withContext(Dispatchers.IO) {
-            supabase.auth.signUpWith(OtpType.Email) {
+            supabase.gotrue.signUpWith(Email) {
                 this.email = email
                 this.password = password
             }
@@ -36,7 +36,7 @@ class AuthRepository {
      */
     suspend fun login(email: String, password: String) {
         withContext(Dispatchers.IO) {
-            supabase.auth.signInWith(OtpType.Email) {
+            supabase.gotrue.signInWith(Email) {
                 this.email = email
                 this.password = password
             }
