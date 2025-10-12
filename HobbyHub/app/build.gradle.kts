@@ -1,10 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.dagger.hilt.android)
-    kotlin("plugin.serialization") version "2.0.21"
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -39,9 +38,15 @@ android {
     buildFeatures {
         compose = true
     }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.11" // This is compatible with Kotlin 1.9.23
+    }
 }
 
 dependencies {
+    // Force update to newer kotlinx-metadata-jvm that supports Kotlin 1.9+
+    implementation(libs.kotlinx.metadata.jvm) // <-- THE CRUCIAL FIX
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -101,5 +106,5 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:realtime-kt")
 
     //ktor-client
-    implementation("io.ktor:ktor-client-android:KTOR_3.3.0")
+    implementation("io.ktor:ktor-client-android:3.3.1")
 }

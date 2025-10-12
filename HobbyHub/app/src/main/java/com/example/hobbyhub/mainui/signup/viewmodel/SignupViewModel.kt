@@ -2,6 +2,7 @@ package com.example.hobbyhub.mainui.signup.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.hobbyhub.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,8 +31,9 @@ class SignupViewModel @Inject constructor() : ViewModel() {
 
     private val _navigateToHome = MutableStateFlow(false)
     val navigateToHome = _navigateToHome.asStateFlow()
-
-    val availableHobbyTags = listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
+    val availableHobbyTags =
+        listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
+    private val authRepository = AuthRepository()
 
     fun onFullNameChange(newFullName: String) {
         _uiState.update { it.copy(fullName = newFullName) }
@@ -73,9 +75,13 @@ class SignupViewModel @Inject constructor() : ViewModel() {
     }
 
     fun onSignupClick() {
-        // In a real app, you would perform registration here.
         viewModelScope.launch {
-            _navigateToHome.value = true
+            try {
+                authRepository.signUp(uiState.value.email, uiState.value.password)
+                _navigateToHome.value = true
+            } catch (e: Exception) {
+                // Handle signup error
+            }
         }
     }
 
