@@ -1,9 +1,9 @@
 package com.example.hobbyhub.mainui.login.viewmodel
 
-import androidx.core.util.PatternsCompat // Import for email validation
+import androidx.core.util.PatternsCompat
 import androidx.lifecycle.ViewModel
-import com.google.firebase.auth.ktx.auth // Added
-import com.google.firebase.ktx.Firebase // Added
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

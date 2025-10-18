@@ -29,13 +29,16 @@ import com.example.hobbyhub.mainui.splashscreen.ui.SplashScreen
 import com.example.hobbyhub.mainui.workshopsscreen.ui.WorkshopsScreen
 
 @Composable
-fun SetupNavGraph(navController: NavHostController) {
+fun SetupNavGraph(
+    navController: NavHostController,
+    startDestination: String // <-- ADD THIS PARAMETER
+) {
     val locationViewModel: LocationViewModel = hiltViewModel()
     val location by locationViewModel.location.collectAsState()
 
     NavHost(
         navController = navController,
-        startDestination = Screen.SplashScreen.route
+        startDestination = startDestination // <-- USE THE PARAMETER HERE
     ) {
         composable(Screen.SplashScreen.route) {
             SplashScreen(navController = navController)
@@ -49,9 +52,9 @@ fun SetupNavGraph(navController: NavHostController) {
         composable(Screen.SignupScreen.route) {
             SignupScreen(navController = navController)
         }
-        composable(Screen.ResetPasswordScreen.route) {
-            ResetPasswordScreen(navController = navController)
-        }
+//        composable(Screen.ResetPasswordScreen.route) {
+//            ResetPasswordScreen(navController = navController)
+//        }
         composable(Screen.HomeScreen.route) {
             HomeScreen(navController = navController, locationViewModel = locationViewModel)
         }

@@ -1,6 +1,7 @@
 package com.example.hobbyhub.mainui.signup.viewmodel
 
-import androidx.core.util.PatternsCompat // Import for email validation
+import android.net.Uri // Import Uri
+import androidx.core.util.PatternsCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hobbyhub.data.AuthRepository
@@ -15,14 +16,12 @@ import javax.inject.Inject
 data class SignupUiState(
     val fullName: String = "",
     val email: String = "",
-    // Removed city as it wasn't used in the UI
     val password: String = "",
     val confirmPassword: String = "",
+    val imageUri: Uri? = null, // Add imageUri
     val passwordVisible: Boolean = false,
     val confirmPasswordVisible: Boolean = false,
-    // Removed hobby tags as they weren't used in the provided UI
-    val isSignUpEnabled: Boolean = false, // Start as disabled
-    // Validation error messages (optional, can be displayed in UI)
+    val isSignUpEnabled: Boolean = false,
     val fullNameError: String? = null,
     val emailError: String? = null,
     val passwordError: String? = null,
@@ -40,30 +39,28 @@ class SignupViewModel @Inject constructor(
     private val _signUpState = MutableStateFlow(SignInState())
     val signUpState = _signUpState.asStateFlow()
 
-    // Removed availableHobbyTags
+    // --- ADD THIS FUNCTION ---
+    fun onImageUriChange(uri: Uri?) {
+        _uiState.update { it.copy(imageUri = uri) }
+    }
+    // --- END ---
 
     fun onFullNameChange(newFullName: String) {
-        // Clear error on change and validate
         _uiState.update { it.copy(fullName = newFullName, fullNameError = null) }
         validateForm()
     }
 
     fun onEmailChange(newEmail: String) {
-        // Clear error on change and validate
         _uiState.update { it.copy(email = newEmail, emailError = null) }
         validateForm()
     }
 
-    // Removed onCityChange
-
     fun onPasswordChange(newPassword: String) {
-        // Clear error on change and validate
         _uiState.update { it.copy(password = newPassword, passwordError = null) }
         validateForm()
     }
 
     fun onConfirmPasswordChange(newConfirmPassword: String) {
-        // Clear error on change and validate
         _uiState.update { it.copy(confirmPassword = newConfirmPassword, confirmPasswordError = null) }
         validateForm()
     }
@@ -76,10 +73,14 @@ class SignupViewModel @Inject constructor(
         _uiState.update { it.copy(confirmPasswordVisible = !it.confirmPasswordVisible) }
     }
 
-    // Removed toggleHobbyTag
-
     private fun validateForm() {
         val state = _uiState.value
+        // ... (validation logic is unchanged)
+        // ...
+        // ...
+        // Note: You can add validation for imageUri if it's mandatory
+
+        // --- THIS FUNCTION'S CONTENT IS UNCHANGED ---
         var isFormValid = true
         var fullNameError: String? = null
         var emailError: String? = null
@@ -90,7 +91,6 @@ class SignupViewModel @Inject constructor(
             fullNameError = "Full name cannot be empty."
             isFormValid = false
         }
-
         if (state.email.isBlank()) {
             emailError = "Email cannot be empty."
             isFormValid = false
@@ -98,8 +98,6 @@ class SignupViewModel @Inject constructor(
             emailError = "Invalid email format."
             isFormValid = false
         }
-
-        // Firebase default minimum password length is 6
         if (state.password.isBlank()) {
             passwordError = "Password cannot be empty."
             isFormValid = false
@@ -107,7 +105,6 @@ class SignupViewModel @Inject constructor(
             passwordError = "Password must be at least 6 characters."
             isFormValid = false
         }
-
         if (state.confirmPassword.isBlank()) {
             confirmPasswordError = "Confirm password cannot be empty."
             isFormValid = false
@@ -115,8 +112,6 @@ class SignupViewModel @Inject constructor(
             confirmPasswordError = "Passwords do not match."
             isFormValid = false
         }
-
-        // Update UI state with validation results
         _uiState.update {
             it.copy(
                 isSignUpEnabled = isFormValid,
@@ -126,36 +121,36 @@ class SignupViewModel @Inject constructor(
                 confirmPasswordError = confirmPasswordError
             )
         }
+        // --- END OF UNCHANGED FUNCTION ---
     }
 
 
     fun onSignupClick() {
-        // Re-validate just in case, although button state should handle it
         validateForm()
         val state = _uiState.value
         if (!state.isSignUpEnabled) {
-            // Don't proceed if form is invalid
             return
         }
 
         viewModelScope.launch {
             _signUpState.update { it.copy(isLoading = true) }
             try {
-                // Password match is already checked in validateForm
-                authRepository.createUserWithEmailAndPassword(state.email, state.password)
-                // If successful, update state
+                // --- UPDATE THIS CALL ---
+                authRepository.createUserWithEmailAndPassword(
+                    fullName = state.fullName,
+                    email = state.email,
+                    password = state.password,
+                    imageUri = state.imageUri // Pass the imageUri
+                )
+                // --- END UPDATE ---
                 _signUpState.update { it.copy(isLoading = false, isSuccess = true, error = null) }
             } catch (e: Exception) {
-                // If error, update state
                 _signUpState.update { it.copy(isLoading = false, isSuccess = false, error = e.localizedMessage ?: "An unknown error occurred") }
             }
         }
     }
 
-
     fun resetState() {
         _signUpState.value = SignInState()
-        // Optionally reset UI fields as well if needed after an error
-        // _uiState.value = SignupUiState()
     }
 }

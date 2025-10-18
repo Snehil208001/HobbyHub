@@ -42,7 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.hobbyhub.core.navigations.Screen
-import com.example.hobbyhub.mainui.profilescreen.viewmodel.ProfileViewModel
+// import com.example.hobbyhub.mainui.profilescreen.viewmodel.ProfileViewModel // Not needed here
 import com.example.hobbyhub.mainui.signup.viewmodel.SignupViewModel
 import com.example.hobbyhub.ui.theme.EventHubDarkText
 import com.example.hobbyhub.ui.theme.EventHubLightGray
@@ -53,23 +53,25 @@ import com.example.hobbyhub.ui.theme.TagBackground
 @Composable
 fun SignupScreen(
     navController: NavController,
-    viewModel: SignupViewModel = hiltViewModel(),
-    profileViewModel: ProfileViewModel = hiltViewModel() // Assuming this is needed for profile updates after signup
+    viewModel: SignupViewModel = hiltViewModel()
+    // Removed profileViewModel, it's not needed here
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val signUpState by viewModel.signUpState.collectAsState()
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
 
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    // --- REMOVED this line: var selectedImageUri by remember { mutableStateOf<Uri?>(null) } ---
 
     // Handle Signup Success/Error
     LaunchedEffect(signUpState) {
         if (signUpState.isSuccess) {
             Toast.makeText(context, "Sign up successful!", Toast.LENGTH_SHORT).show()
-            // Update profile ViewModel *after* successful signup
-            profileViewModel.onNameChange(uiState.fullName)
-            profileViewModel.onProfileImageChange(selectedImageUri)
+
+            // --- REMOVED these lines, ProfileViewModel will load its own data ---
+            // profileViewModel.onNameChange(uiState.fullName)
+            // profileViewModel.onProfileImageChange(selectedImageUri)
+
             // Navigate to Home screen, clearing the back stack
             navController.navigate(Screen.HomeScreen.route) {
                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
@@ -88,7 +90,7 @@ fun SignupScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical)) // Respect system bars
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical))
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -96,7 +98,7 @@ fun SignupScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp), // Padding from status bar
+                    .padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { navController.popBackStack() }) {
@@ -117,28 +119,28 @@ fun SignupScreen(
                 fontWeight = FontWeight.SemiBold,
                 color = EventHubDarkText,
                 modifier = Modifier
-                    .fillMaxWidth() // Align text start
+                    .fillMaxWidth()
                     .padding(bottom = 24.dp)
             )
 
             // Profile Picture
             ProfilePictureUploader(
-                imageUri = selectedImageUri,
-                onImageSelected = { uri -> selectedImageUri = uri }
+                imageUri = uiState.imageUri, // --- Use imageUri from ViewModel state ---
+                onImageSelected = { uri -> viewModel.onImageUriChange(uri) } // --- Call ViewModel function ---
             )
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Full Name Field
+            // Full Name Field (Unchanged)
             CustomTextField(
                 value = uiState.fullName,
                 onValueChange = viewModel::onFullNameChange,
+                // ... rest of props
                 placeholderText = "Full name",
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                isError = uiState.fullNameError != null // Pass error state
+                isError = uiState.fullNameError != null
             )
-            // Display Full Name Error (Optional)
             uiState.fullNameError?.let { error ->
                 Text(
                     text = error,
@@ -149,17 +151,17 @@ fun SignupScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Email Field
+            // Email Field (Unchanged)
             CustomTextField(
                 value = uiState.email,
                 onValueChange = viewModel::onEmailChange,
+                // ... rest of props
                 placeholderText = "abc@email.com",
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                isError = uiState.emailError != null // Pass error state
+                isError = uiState.emailError != null
             )
-            // Display Email Error (Optional)
             uiState.emailError?.let { error ->
                 Text(
                     text = error,
@@ -170,10 +172,11 @@ fun SignupScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Password Field
+            // Password Field (Unchanged)
             CustomTextField(
                 value = uiState.password,
                 onValueChange = viewModel::onPasswordChange,
+                // ... rest of props
                 placeholderText = "Your password (min. 6 characters)",
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
                 visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -185,9 +188,8 @@ fun SignupScreen(
                 },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                isError = uiState.passwordError != null // Pass error state
+                isError = uiState.passwordError != null
             )
-            // Display Password Error (Optional)
             uiState.passwordError?.let { error ->
                 Text(
                     text = error,
@@ -198,10 +200,11 @@ fun SignupScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Confirm Password Field
+            // Confirm Password Field (Unchanged)
             CustomTextField(
                 value = uiState.confirmPassword,
                 onValueChange = viewModel::onConfirmPasswordChange,
+                // ... rest of props
                 placeholderText = "Confirm password",
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
                 visualTransformation = if (uiState.confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -213,12 +216,11 @@ fun SignupScreen(
                 },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
-                    viewModel.onSignupClick() // Attempt signup on keyboard done
+                    viewModel.onSignupClick()
                     focusManager.clearFocus()
                 }),
-                isError = uiState.confirmPasswordError != null // Pass error state
+                isError = uiState.confirmPasswordError != null
             )
-            // Display Confirm Password Error (Optional)
             uiState.confirmPasswordError?.let { error ->
                 Text(
                     text = error,
@@ -229,10 +231,9 @@ fun SignupScreen(
             }
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Sign Up Button
+            // Sign Up Button (Unchanged)
             Button(
                 onClick = viewModel::onSignupClick,
-                // Use the validated state from ViewModel, also check loading state
                 enabled = uiState.isSignUpEnabled && !signUpState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -240,7 +241,6 @@ fun SignupScreen(
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = EventHubPrimary,
-                    // Optional: Dim button when disabled
                     disabledContainerColor = EventHubPrimary.copy(alpha = 0.5f)
                 )
             ) {
@@ -248,23 +248,21 @@ fun SignupScreen(
                     "SIGN UP",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = Color.White // Ensure text is white
+                    color = Color.White
                 )
             }
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Sign In Link
+            // Sign In Link (Unchanged)
             SignInLink(navController)
-            Spacer(modifier = Modifier.height(24.dp)) // Bottom padding
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Loading Indicator Overlay
+        // Loading Indicator Overlay (Unchanged)
         if (signUpState.isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                // Optional: Add a semi-transparent background scrim
-                // .background(Color.Black.copy(alpha = 0.3f))
             ) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
@@ -272,7 +270,7 @@ fun SignupScreen(
     }
 }
 
-// --- ProfilePictureUploader Composable (No changes needed) ---
+// --- ProfilePictureUploader Composable (Unchanged) ---
 @Composable
 fun ProfilePictureUploader(
     imageUri: Uri?,
@@ -294,18 +292,17 @@ fun ProfilePictureUploader(
                 .clip(CircleShape)
                 .background(EventHubLightGray)
                 .border(2.dp, EventHubPrimary, CircleShape)
-                .clickable { imagePickerLauncher.launch("image/*") }, // Allow clicking to pick image
+                .clickable { imagePickerLauncher.launch("image/*") },
             contentAlignment = Alignment.Center
         ) {
             if (imageUri != null) {
                 AsyncImage(
                     model = imageUri,
                     contentDescription = "Profile Picture",
-                    modifier = Modifier.fillMaxSize(), // Fill the circle
-                    contentScale = ContentScale.Crop // Crop to fit the circle
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
             } else {
-                // Placeholder Icon
                 Icon(
                     Icons.Default.CameraAlt,
                     contentDescription = "Upload Photo",
@@ -320,7 +317,7 @@ fun ProfilePictureUploader(
 }
 
 
-// --- CustomTextField Composable (Updated with isError) ---
+// --- CustomTextField Composable (Unchanged) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomTextField(
@@ -332,7 +329,7 @@ private fun CustomTextField(
     trailingIcon: @Composable (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    isError: Boolean = false // ADDED isError parameter
+    isError: Boolean = false
 ) {
     TextField(
         value = value,
@@ -341,27 +338,26 @@ private fun CustomTextField(
         leadingIcon = leadingIcon,
         visualTransformation = visualTransformation,
         trailingIcon = trailingIcon,
-        isError = isError, // PASS isError to the underlying TextField
+        isError = isError,
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),
-        shape = RoundedCornerShape(28.dp), // Pill shape
-        colors = TextFieldDefaults.colors( // Use new colors API
+        shape = RoundedCornerShape(28.dp),
+        colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.White,
             unfocusedContainerColor = Color.White,
-            disabledContainerColor = Color.White, // Use same background when disabled
-            focusedIndicatorColor = Color.Transparent, // No underline
+            disabledContainerColor = Color.White,
+            focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
             cursorColor = EventHubPrimary,
             focusedTextColor = EventHubDarkText,
             unfocusedTextColor = EventHubDarkText,
-            // Error state colors
-            errorContainerColor = Color.White, // Keep background white on error
-            errorIndicatorColor = Color.Transparent, // No underline on error
+            errorContainerColor = Color.White,
+            errorIndicatorColor = Color.Transparent,
             errorCursorColor = MaterialTheme.colorScheme.error,
             errorLeadingIconColor = if (isError) MaterialTheme.colorScheme.error else Color.Gray,
             errorTrailingIconColor = if (isError) MaterialTheme.colorScheme.error else Color.Gray,
-            errorTextColor = EventHubDarkText // Keep text color normal even on error
+            errorTextColor = EventHubDarkText
         ),
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
@@ -369,7 +365,7 @@ private fun CustomTextField(
     )
 }
 
-// --- SignInLink Composable (No changes needed) ---
+// --- SignInLink Composable (Unchanged) ---
 @Composable
 private fun SignInLink(navController: NavController) {
     val annotatedString = buildAnnotatedString {
@@ -386,23 +382,17 @@ private fun SignInLink(navController: NavController) {
         onClick = { offset ->
             annotatedString.getStringAnnotations(tag = "SignIn", start = offset, end = offset)
                 .firstOrNull()?.let {
-                    // Navigate to Login Screen
                     navController.navigate(Screen.LoginScreen.route) {
-                        // Optional: Pop Signup off the stack if desired
-                        // popUpTo(Screen.SignupScreen.route) { inclusive = true }
-                        // Or pop up to the start destination
-                        // popUpTo(navController.graph.startDestinationId)
-                        launchSingleTop = true // Prevent multiple Login screens
+                        launchSingleTop = true
                     }
                 }
         },
         style = LocalTextStyle.current.copy(color = EventHubDarkText, textAlign = TextAlign.Center),
-        modifier = Modifier.fillMaxWidth() // Center align the link text
+        modifier = Modifier.fillMaxWidth()
     )
 }
 
-// --- HobbyTagSelector Composable (No changes needed if removed from UI state) ---
-// If you decide to add hobby selection back, this composable is ready.
+// --- HobbyTagSelector Composable (Unchanged) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HobbyTagSelector(
@@ -412,11 +402,10 @@ fun HobbyTagSelector(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            "Select your interests", // Add a label for the tags
+            "Select your interests",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        // Using FlowRow from Accompanist is often better for tags
         com.google.accompanist.flowlayout.FlowRow(
             modifier = Modifier.fillMaxWidth(),
             mainAxisSpacing = 8.dp,
@@ -424,7 +413,7 @@ fun HobbyTagSelector(
         ) {
             availableTags.forEach { tag ->
                 val isSelected = selectedTags.contains(tag)
-                FilterChip( // Use FilterChip for toggle behavior
+                FilterChip(
                     selected = isSelected,
                     onClick = { onTagSelected(tag) },
                     label = { Text(tag) },

@@ -1,31 +1,35 @@
 package com.example.hobbyhub.mainui.login.viewmodel
 
-import androidx.core.util.PatternsCompat // Import for email validation
+import android.content.Context // Import Context
+import androidx.core.util.PatternsCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.hobbyhub.core.utils.PreferencesHelper // Import PreferencesHelper
 import com.example.hobbyhub.data.AuthRepository
 import com.example.hobbyhub.data.SignInState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext // Import ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// LoginUiState remains the same
 data class LoginUiState(
     val email: String = "",
     val password: String = "",
     val passwordVisible: Boolean = false,
     val rememberMe: Boolean = false,
-    val isLoginEnabled: Boolean = false, // Start as disabled
-    // Optional error messages
+    val isLoginEnabled: Boolean = false,
     val emailError: String? = null,
     val passwordError: String? = null
 )
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    @ApplicationContext private val context: Context // Inject Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -34,14 +38,32 @@ class LoginViewModel @Inject constructor(
     private val _signInState = MutableStateFlow(SignInState())
     val signInState = _signInState.asStateFlow()
 
+    // --- Load saved state on initialization ---
+    init {
+        val shouldRemember = PreferencesHelper.shouldRememberMe(context)
+        val savedEmail = PreferencesHelper.getSavedEmail(context)
+        val savedPassword = PreferencesHelper.getSavedPassword(context) // !! Insecure !!
+
+        _uiState.update {
+            it.copy(
+                rememberMe = shouldRemember,
+                email = if (shouldRemember && savedEmail != null) savedEmail else "",
+                password = if (shouldRemember && savedPassword != null) savedPassword else "" // !! Insecure !!
+            )
+        }
+        // Validate immediately in case loaded credentials are valid
+        if (shouldRemember && !savedEmail.isNullOrBlank() && !savedPassword.isNullOrBlank()) {
+            validateForm()
+        }
+    }
+    // --- End Load ---
+
     fun onEmailChange(newEmail: String) {
-        // Clear error on change and validate
         _uiState.update { it.copy(email = newEmail, emailError = null) }
         validateForm()
     }
 
     fun onPasswordChange(newPassword: String) {
-        // Clear error on change and validate
         _uiState.update { it.copy(password = newPassword, passwordError = null) }
         validateForm()
     }
@@ -52,7 +74,13 @@ class LoginViewModel @Inject constructor(
 
     fun onRememberMeToggle(isChecked: Boolean) {
         _uiState.update { it.copy(rememberMe = isChecked) }
-        // No need to re-validate form for remember me toggle
+        // --- Save preference immediately ---
+        PreferencesHelper.setRememberMe(context, isChecked)
+        // If unchecked, clear saved credentials immediately
+        if (!isChecked) {
+            PreferencesHelper.clearCredentials(context)
+        }
+        // --- End Save ---
     }
 
     private fun validateForm() {
@@ -73,9 +101,7 @@ class LoginViewModel @Inject constructor(
             passwordError = "Password cannot be empty."
             isFormValid = false
         }
-        // No minimum length check needed for login, just non-empty
 
-        // Update UI state with validation results
         _uiState.update {
             it.copy(
                 isLoginEnabled = isFormValid,
@@ -90,30 +116,32 @@ class LoginViewModel @Inject constructor(
         validateForm() // Re-validate before attempting login
         val state = _uiState.value
         if (!state.isLoginEnabled) {
-            // Don't proceed if form is invalid
             return
         }
 
+        // --- Save or Clear Credentials before login attempt ---
+        if (state.rememberMe) {
+            PreferencesHelper.saveCredentials(context, state.email, state.password) // !! Insecure !!
+        } else {
+            // This case might already be handled in onRememberMeToggle,
+            // but clearing here ensures consistency if the toggle state changed
+            // without triggering the callback somehow.
+            PreferencesHelper.clearCredentials(context)
+        }
+        // --- End Save/Clear ---
+
         viewModelScope.launch {
-            // Set loading state
             _signInState.update { it.copy(isLoading = true) }
             try {
-                // Attempt sign in
                 authRepository.signInWithEmailAndPassword(state.email, state.password)
-                // Update state on success
                 _signInState.update { it.copy(isLoading = false, isSuccess = true, error = null) }
             } catch (e: Exception) {
-                // Update state on failure
                 _signInState.update { it.copy(isLoading = false, isSuccess = false, error = e.localizedMessage ?: "Login failed") }
             }
         }
     }
 
-    // Removed onGoogleSignIn function as requested previously
-
     fun resetState() {
         _signInState.value = SignInState()
-        // Optionally reset UI fields if needed after error
-        // _uiState.value = LoginUiState()
     }
 }

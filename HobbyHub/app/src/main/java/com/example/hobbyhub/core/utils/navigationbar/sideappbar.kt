@@ -2,19 +2,47 @@ package com.example.hobbyhub.core.utils.navigationbar
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.outlined.Message
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext // Needed for AuthRepository instance if not using Hilt ViewModel
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,32 +52,24 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.hobbyhub.R
 import com.example.hobbyhub.core.navigations.Screen
-import com.example.hobbyhub.data.AuthRepository // Import AuthRepository
 import com.example.hobbyhub.mainui.profilescreen.viewmodel.ProfileViewModel
 import com.example.hobbyhub.ui.theme.EventHubPrimary
-import com.google.firebase.auth.ktx.auth // Direct Firebase Auth access
-import com.google.firebase.ktx.Firebase // Direct Firebase access
-import kotlinx.coroutines.launch // Import launch
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SideAppBar(
     navController: NavController,
     profileViewModel: ProfileViewModel = hiltViewModel()
-    // Consider injecting AuthRepository via Hilt or passing it if needed in a ViewModel
 ) {
     val userProfile by profileViewModel.userProfile.collectAsState()
-    val upgradeProColor = Color(0xFF00C853) // A vibrant green for the upgrade button
-    val scope = rememberCoroutineScope() // Coroutine scope for navigation
-
-    // Get AuthRepository instance (You might inject this differently with Hilt)
-    val authRepository = remember { AuthRepository(Firebase.auth) }
-
+    val upgradeProColor = Color(0xFF00C853)
+    val scope = rememberCoroutineScope()
 
     ModalDrawerSheet(
         modifier = Modifier
             .fillMaxHeight()
-            .width(300.dp), // A standard width for drawers
+            .width(300.dp),
         drawerContainerColor = Color.White,
         drawerContentColor = Color.Black
     ) {
@@ -65,9 +85,11 @@ fun SideAppBar(
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 24.dp)
             ) {
-                if (userProfile.profileImageUri != null) {
+                // --- CORRECTED IMAGE LOGIC ---
+                // We only show the database URL or the logo, not the local URI
+                if (userProfile.databaseImageUrl.isNotBlank()) {
                     AsyncImage(
-                        model = userProfile.profileImageUri,
+                        model = userProfile.databaseImageUrl, // Use the String URL
                         contentDescription = "Profile Picture",
                         modifier = Modifier
                             .size(60.dp)
@@ -76,18 +98,26 @@ fun SideAppBar(
                     )
                 } else {
                     Image(
-                        painter = painterResource(id = R.drawable.logo), // Replace with actual user image
+                        painter = painterResource(id = R.drawable.logo), // Default logo
                         contentDescription = "Profile Picture",
                         modifier = Modifier
                             .size(60.dp)
                             .clip(CircleShape)
                     )
                 }
+                // --- END CORRECTION ---
+
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(userProfile.name, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
+
+                // This logic is correct
+                if (userProfile.name.isBlank()) {
+                    Text("Loading...", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
+                } else {
+                    Text(userProfile.name, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
+                }
             }
 
-            // Navigation Items
+            // Navigation Items (Unchanged)
             DrawerMenuItem(icon = Icons.Outlined.Person, text = "My Profile", onClick = { navController.navigate(Screen.ProfileScreen.route)})
             DrawerMenuItem(icon = Icons.Outlined.Message, text = "Message", hasBadge = true, onClick = { navController.navigate(Screen.MessageScreen.route)})
             DrawerMenuItem(icon = Icons.Outlined.CalendarToday, text = "Calender", onClick = { navController.navigate(Screen.CalendarScreen.route) })
@@ -98,36 +128,28 @@ fun SideAppBar(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Sign Out and Delete Account Section
+            // Sign Out and Delete Account Section (Unchanged)
             Divider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-
-            // *** Sign Out Logic Added ***
             DrawerMenuItem(
                 icon = Icons.Outlined.Logout,
                 text = "Sign Out",
                 onClick = {
-                    authRepository.signOut()
-                    // Navigate back to Login, clearing the back stack
+                    profileViewModel.signOut()
                     scope.launch {
                         navController.navigate(Screen.LoginScreen.route) {
                             popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                            launchSingleTop = true // Avoid multiple copies of login screen
+                            launchSingleTop = true
                         }
                     }
                 }
             )
-            // ***************************
-
             DrawerMenuItem(
                 icon = Icons.Outlined.Delete,
                 text = "Delete Account",
                 onClick = { navController.navigate(Screen.DeleteAccountScreen.route) },
                 contentColor = Color.Red
             )
-
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Button(
                 onClick = { /* Handle Upgrade Pro click */ },
                 modifier = Modifier
@@ -148,7 +170,7 @@ fun SideAppBar(
     }
 }
 
-// DrawerMenuItem composable remains the same
+// DrawerMenuItem composable (Unchanged)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DrawerMenuItem(

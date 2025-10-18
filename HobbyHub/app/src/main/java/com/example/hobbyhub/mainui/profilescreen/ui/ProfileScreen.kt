@@ -79,16 +79,39 @@ fun ProfileScreen(
             // Profile Header
             item {
                 Spacer(modifier = Modifier.height(16.dp))
+                // --- CORRECTED ProfileImage call ---
                 ProfileImage(
-                    imageUri = userProfile.profileImageUri,
+                    newImageUri = userProfile.newSelectedImageUri,
+                    databaseImageUrl = userProfile.databaseImageUrl,
                     onImageClick = { imagePickerLauncher.launch("image/*") }
                 )
+                // --- END CORRECTION ---
+
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = userProfile.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
+
+                // This block is correct and will show "Loading..."
+                if (userProfile.name.isBlank()) {
+                    Text(
+                        text = "Loading...",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Text(
+                        text = userProfile.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (userProfile.email.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = userProfile.email,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
                 FollowStats()
                 Spacer(modifier = Modifier.height(24.dp))
@@ -107,13 +130,13 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(32.dp))
             }
 
-            // About Me Section
+            // About Me Section (Unchanged)
             item {
                 AboutMeSection()
                 Spacer(modifier = Modifier.height(32.dp))
             }
 
-            // Interest Section
+            // Interest Section (Unchanged)
             item {
                 InterestSection(interests = interests)
                 Spacer(modifier = Modifier.height(32.dp))
@@ -122,8 +145,17 @@ fun ProfileScreen(
     }
 }
 
+// --- CORRECTED ProfileImage composable ---
 @Composable
-fun ProfileImage(imageUri: Uri?, onImageClick: () -> Unit) {
+fun ProfileImage(
+    newImageUri: Uri?,
+    databaseImageUrl: String?,
+    onImageClick: () -> Unit
+) {
+    // Prioritize showing the newly selected local image.
+    // If it's null, show the image URL from the database.
+    val model: Any? = newImageUri ?: databaseImageUrl?.ifBlank { null }
+
     Box(
         modifier = Modifier
             .size(120.dp)
@@ -133,9 +165,9 @@ fun ProfileImage(imageUri: Uri?, onImageClick: () -> Unit) {
             .clickable { onImageClick() },
         contentAlignment = Alignment.Center
     ) {
-        if (imageUri != null) {
+        if (model != null) {
             AsyncImage(
-                model = imageUri,
+                model = model, // Coil can handle both Uri and String URL
                 contentDescription = "Profile Picture",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -150,7 +182,9 @@ fun ProfileImage(imageUri: Uri?, onImageClick: () -> Unit) {
         }
     }
 }
+// --- END CORRECTION ---
 
+// --- FollowStats, AboutMeSection, InterestSection, InterestChip are unchanged ---
 @Composable
 fun FollowStats() {
     Row(

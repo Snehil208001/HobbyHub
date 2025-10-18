@@ -181,12 +181,12 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Remember Me", color = EventHubDarkText)
                 }
-                TextButton(
-                    onClick = { navController.navigate(Screen.ResetPasswordScreen.route) },
-                    contentPadding = PaddingValues(0.dp) // Remove default padding
-                ) {
-                    Text("Forgot Password?", color = EventHubPrimary, fontWeight = FontWeight.SemiBold)
-                }
+//                TextButton(
+//                    onClick = { navController.navigate(Screen.ResetPasswordScreen.route) },
+//                    contentPadding = PaddingValues(0.dp) // Remove default padding
+//                ) {
+//                    Text("Forgot Password?", color = EventHubPrimary, fontWeight = FontWeight.SemiBold)
+//                }
             }
             Spacer(modifier = Modifier.height(32.dp))
 
