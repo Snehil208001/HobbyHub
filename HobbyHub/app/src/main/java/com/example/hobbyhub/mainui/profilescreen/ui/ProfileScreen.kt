@@ -1,279 +1,202 @@
 package com.example.hobbyhub.mainui.profilescreen.ui
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.* // Import LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.hobbyhub.R // Make sure your R file is imported
+// Ensure these imports point to YOUR navigation files
+import com.example.hobbyhub.core.navigations.Graph // <-- Import Graph
+import com.example.hobbyhub.core.navigations.Screen // <-- Import Screen
 import com.example.hobbyhub.mainui.profilescreen.viewmodel.ProfileViewModel
-import com.example.hobbyhub.ui.theme.EventHubLightGray
-import com.example.hobbyhub.ui.theme.EventHubPrimary
-import com.example.hobbyhub.ui.theme.TagBackground
-import com.google.accompanist.flowlayout.FlowRow
+import com.google.accompanist.flowlayout.FlowRow // Add this dependency: implementation "com.google.accompanist.flowlayout:accompanist-flowlayout:0.xx.x"
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) // Needed for Chip
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    profileViewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    val userProfile by profileViewModel.userProfile.collectAsState()
-    val interests = listOf("Games Online", "Concert", "Music", "Art", "Movie", "Others")
+    val uiState by viewModel.uiState.collectAsState()
+    val user = uiState.user // Get the user object from the state
+    val context = LocalContext.current
 
-    // Image picker launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri: Uri? ->
-            uri?.let { profileViewModel.onProfileImageChange(it) }
-        }
-    )
+    // --- ADDED: Refresh profile when screen becomes visible ---
+    LaunchedEffect(Unit) {
+        viewModel.loadUserProfile()
+    }
+    // --- END ---
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                title = { Text("My Profile") },
+                actions = {
+                    IconButton(onClick = {
+                        // --- Use Screen ---
+                        navController.navigate(Screen.EditProfile.route)
+                        // --- End Use Screen ---
+                    }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Profile")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                }
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()), // Make content scrollable
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile Header
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                // --- CORRECTED ProfileImage call ---
-                ProfileImage(
-                    newImageUri = userProfile.newSelectedImageUri,
-                    databaseImageUrl = userProfile.databaseImageUrl,
-                    onImageClick = { imagePickerLauncher.launch("image/*") }
+            if (uiState.isLoading && user == null) { // Show loading only if user is not yet loaded
+                CircularProgressIndicator()
+            } else if (uiState.error != null && user == null) { // Show error only if loading failed initially
+                Text(
+                    text = "Error: ${uiState.error}",
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center
                 )
-                // --- END CORRECTION ---
+            } else if (user != null) {
+                // Profile Picture
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(user.profileImageUrl.ifEmpty { R.drawable.logo }) // Use placeholder if empty
+                        .crossfade(true)
+                        .error(R.drawable.logo) // Fallback placeholder
+                        .placeholder(R.drawable.logo)
+                        .build(),
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // This block is correct and will show "Loading..."
-                if (userProfile.name.isBlank()) {
+                // Full Name
+                Text(
+                    text = user.fullName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Email
+                Text(
+                    text = user.email,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Bio Section (Use user.bio directly for display)
+                SectionTitle("About Me")
+                Text(
+                    text = user.bio.ifEmpty { "No bio yet. Tap edit to add one!" },
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Start // Align bio text to the start
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Hobbies Section (Use user.hobbies directly for display)
+                SectionTitle("My Hobbies & Interests")
+                val hobbies = user.hobbies // Get hobbies from user state
+                if (hobbies.isEmpty()) {
                     Text(
-                        text = "Loading...",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        text = "No hobbies added yet. Tap edit to add some!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Start
                     )
                 } else {
-                    Text(
-                        text = userProfile.name,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (userProfile.email.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = userProfile.email,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray
-                        )
+                    // Use FlowRow to wrap chips
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        mainAxisSpacing = 8.dp,
+                        crossAxisSpacing = 8.dp
+                    ) {
+                        hobbies.forEach { hobby -> // Iterate user.hobbies
+                            SuggestionChip( // Or use FilterChip if selectable
+                                onClick = { /* Maybe navigate to hobby detail? */ },
+                                label = { Text(hobby) }
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                FollowStats()
-                Spacer(modifier = Modifier.height(24.dp))
-                OutlinedButton(
-                    onClick = { /* TODO: Navigate to an edit profile screen */ },
-                    modifier = Modifier.fillMaxWidth(0.6f)
+                Spacer(modifier = Modifier.weight(1f)) // Push button to bottom
+
+                // Sign Out Button
+                Button(
+                    onClick = {
+                        viewModel.onSignOutClick {
+                            // --- Use Screen ---
+                            navController.navigate(Screen.LoginScreen.route) {
+                                popUpTo(Graph.ROOT) { inclusive = true } // Clear entire backstack using Graph
+                                launchSingleTop = true
+                            }
+                            // --- End Use Screen ---
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Icon",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Edit Profile")
+                    Text("Sign Out")
                 }
-                Spacer(modifier = Modifier.height(32.dp))
-            }
 
-            // About Me Section (Unchanged)
-            item {
-                AboutMeSection()
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-
-            // Interest Section (Unchanged)
-            item {
-                InterestSection(interests = interests)
-                Spacer(modifier = Modifier.height(32.dp))
+            } else {
+                // This case should ideally not be reached if logged in,
+                // but kept as a fallback. Maybe show loading or error.
+                if (!uiState.isLoading) { // Avoid showing this text while loading
+                    Text(
+                        "User profile not found.",
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    CircularProgressIndicator() // Show loading if user is null but still loading
+                }
             }
         }
     }
 }
 
-// --- CORRECTED ProfileImage composable ---
+// Helper composable for section titles (keep as is)
 @Composable
-fun ProfileImage(
-    newImageUri: Uri?,
-    databaseImageUrl: String?,
-    onImageClick: () -> Unit
-) {
-    // Prioritize showing the newly selected local image.
-    // If it's null, show the image URL from the database.
-    val model: Any? = newImageUri ?: databaseImageUrl?.ifBlank { null }
-
-    Box(
+fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
         modifier = Modifier
-            .size(120.dp)
-            .clip(CircleShape)
-            .background(EventHubLightGray)
-            .border(2.dp, EventHubPrimary, CircleShape)
-            .clickable { onImageClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        if (model != null) {
-            AsyncImage(
-                model = model, // Coil can handle both Uri and String URL
-                contentDescription = "Profile Picture",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.CameraAlt,
-                contentDescription = "Upload Photo",
-                tint = Color.Gray,
-                modifier = Modifier.size(48.dp)
-            )
-        }
-    }
-}
-// --- END CORRECTION ---
-
-// --- FollowStats, AboutMeSection, InterestSection, InterestChip are unchanged ---
-@Composable
-fun FollowStats() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("350", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text("Following", color = Color.Gray)
-        }
-        VerticalDivider(
-            modifier = Modifier
-                .height(30.dp)
-                .padding(horizontal = 24.dp)
-        )
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("346", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text("Followers", color = Color.Gray)
-        }
-    }
-}
-
-@Composable
-fun AboutMeSection() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Text(
-            "About Me",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            "Enjoy your favorite dishe and a lovely your friends and family and have a great time. Food from local food trucks will be available for purchase.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.Gray
-        )
-    }
-}
-
-@Composable
-fun InterestSection(interests: List<String>) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "Interest",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            TextButton(onClick = { /*TODO*/ }) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit Interests",
-                    modifier = Modifier.size(16.dp),
-                    tint = EventHubPrimary
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("CHANGE", color = EventHubPrimary)
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            mainAxisSpacing = 8.dp,
-            crossAxisSpacing = 8.dp
-        ) {
-            interests.forEach { interest ->
-                InterestChip(text = interest)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun InterestChip(text: String) {
-    AssistChip(
-        onClick = { },
-        label = { Text(text, color = EventHubPrimary) },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = TagBackground
-        ),
-        border = BorderStroke(1.dp, Color.Transparent)
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        textAlign = TextAlign.Start
     )
 }

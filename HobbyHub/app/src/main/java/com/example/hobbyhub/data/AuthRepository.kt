@@ -1,6 +1,7 @@
 package com.example.hobbyhub.data
 
 import android.net.Uri // Import Uri
+import android.util.Log // <-- Import Log
 import com.example.hobbyhub.domain.model.User
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
@@ -47,24 +48,28 @@ class AuthRepository @Inject constructor(
                 fullName = fullName,
                 email = email,
                 profileImageUrl = profileImageUrl // Save the URL
+                // hobbies and bio will use default empty values initially
             )
             firestore.collection("users").document(firebaseUser.uid)
                 .set(user)
                 .await()
 
         } catch (e: Exception) {
-            throw e
+            // Log the error for better debugging
+            Log.e("AuthRepository", "User creation failed", e)
+            throw e // Re-throw the exception
         }
     }
 
-    // 4. Add this new function to upload the image
+    // 4. Add this new function to upload the image (Matches Option 1 Rule)
     private suspend fun uploadProfileImage(uid: String, imageUri: Uri): String {
         return try {
-            val storageRef = storage.reference.child("profile_images/$uid.jpg")
+            val storageRef = storage.reference.child("profile_images/$uid.jpg") // Path matching Option 1 rule
             storageRef.putFile(imageUri).await() // Upload file
             storageRef.downloadUrl.await().toString() // Get download URL
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Log the error for better debugging
+            Log.e("AuthRepository", "Image upload failed", e)
             "" // Return empty string on failure
         }
     }
@@ -79,15 +84,52 @@ class AuthRepository @Inject constructor(
                 .await()
             documentSnapshot.toObject(User::class.java) // Returns User object
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Log the error
+            Log.e("AuthRepository", "Failed to get user profile", e)
             null
         }
     }
 
+    // --- ADD updateProfile ---
+    suspend fun updateProfile(bio: String, hobbies: List<String>) {
+        val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
+        try {
+            val updates = mapOf(
+                "bio" to bio,
+                "hobbies" to hobbies
+            )
+            firestore.collection("users").document(uid)
+                .update(updates) // Use update instead of set to only change specific fields
+                .await()
+        } catch (e: Exception) {
+            // Log the error for better debugging
+            Log.e("AuthRepository", "Profile update failed", e)
+            throw e // Re-throw the exception to be caught by the ViewModel
+        }
+    }
+    // --- END updateProfile ---
+
+
     // 6. Keep these functions
     suspend fun signInWithGoogle(idToken: String): AuthResult {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-        return auth.signInWithCredential(credential).await()
+        val authResult = auth.signInWithCredential(credential).await()
+        val firebaseUser = authResult.user
+        // Check if user exists in Firestore, if not, create them
+        if (firebaseUser != null) {
+            val userDoc = firestore.collection("users").document(firebaseUser.uid).get().await()
+            if (!userDoc.exists()) {
+                val newUser = User(
+                    uid = firebaseUser.uid,
+                    fullName = firebaseUser.displayName ?: "Google User",
+                    email = firebaseUser.email ?: "",
+                    profileImageUrl = firebaseUser.photoUrl?.toString() ?: ""
+                    // Hobbies and bio will be default empty
+                )
+                firestore.collection("users").document(firebaseUser.uid).set(newUser).await()
+            }
+        }
+        return authResult
     }
 
     fun signOut() {

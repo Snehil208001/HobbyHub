@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.Message
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Delete
@@ -23,16 +26,9 @@ import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Message
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
+// ... (keep all other imports)
 import androidx.compose.material.icons.outlined.WorkspacePremium
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.Text
+import androidx.compose.material3.* // Keep using Material3 imports
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,7 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.hobbyhub.R
-import com.example.hobbyhub.core.navigations.Screen
+import com.example.hobbyhub.core.navigations.Screen // Use Screen as per your NavGraph
 import com.example.hobbyhub.mainui.profilescreen.viewmodel.ProfileViewModel
 import com.example.hobbyhub.ui.theme.EventHubPrimary
 import kotlinx.coroutines.launch
@@ -62,7 +58,11 @@ fun SideAppBar(
     navController: NavController,
     profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
-    val userProfile by profileViewModel.userProfile.collectAsState()
+    // --- FIX Line 65: Collect uiState, not userProfile ---
+    val uiState by profileViewModel.uiState.collectAsState()
+    val user = uiState.user // Get user from the uiState
+    // --- END FIX ---
+
     val upgradeProColor = Color(0xFF00C853)
     val scope = rememberCoroutineScope()
 
@@ -85,39 +85,34 @@ fun SideAppBar(
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 24.dp)
             ) {
-                // --- CORRECTED IMAGE LOGIC ---
-                // We only show the database URL or the logo, not the local URI
-                if (userProfile.databaseImageUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = userProfile.databaseImageUrl, // Use the String URL
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.logo), // Default logo
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                    )
-                }
+                // --- CORRECTED IMAGE LOGIC (Access via user?.profileImageUrl) ---
+                AsyncImage(
+                    // Use user object and provide default/placeholder
+                    model = user?.profileImageUrl?.ifEmpty { R.drawable.logo } ?: R.drawable.logo,
+                    contentDescription = "Profile Picture",
+                    placeholder = painterResource(id = R.drawable.logo), // Add placeholder
+                    error = painterResource(id = R.drawable.logo),       // Add error fallback
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
                 // --- END CORRECTION ---
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // This logic is correct
-                if (userProfile.name.isBlank()) {
-                    Text("Loading...", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
-                } else {
-                    Text(userProfile.name, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
-                }
+                // --- Access name via user?.fullName ---
+                // Handle null user while loading or if error occurs
+                Text(
+                    text = if (user != null) user.fullName.ifEmpty { "User" } else "Loading...",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color.Black
+                )
+                // --- END FIX ---
             }
 
-            // Navigation Items (Unchanged)
+            // Navigation Items (Unchanged - Already uses Screen.*)
             DrawerMenuItem(icon = Icons.Outlined.Person, text = "My Profile", onClick = { navController.navigate(Screen.ProfileScreen.route)})
             DrawerMenuItem(icon = Icons.Outlined.Message, text = "Message", hasBadge = true, onClick = { navController.navigate(Screen.MessageScreen.route)})
             DrawerMenuItem(icon = Icons.Outlined.CalendarToday, text = "Calender", onClick = { navController.navigate(Screen.CalendarScreen.route) })
@@ -134,11 +129,13 @@ fun SideAppBar(
                 icon = Icons.Outlined.Logout,
                 text = "Sign Out",
                 onClick = {
-                    profileViewModel.signOut()
-                    scope.launch {
-                        navController.navigate(Screen.LoginScreen.route) {
-                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                            launchSingleTop = true
+                    profileViewModel.onSignOutClick { // Use the ViewModel's signout method
+                        scope.launch {
+                            navController.navigate(Screen.LoginScreen.route) {
+                                // Pop up to the start destination of the graph to clear backstack
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
                     }
                 }
@@ -177,7 +174,7 @@ private fun DrawerMenuItem(
     icon: ImageVector,
     text: String,
     hasBadge: Boolean = false,
-    contentColor: Color = Color.DarkGray,
+    contentColor: Color = Color.DarkGray, // Adjusted default for better visibility maybe
     onClick: () -> Unit = {}
 ) {
     Row(
@@ -202,9 +199,10 @@ private fun DrawerMenuItem(
         )
         if (hasBadge) {
             Badge(
-                containerColor = EventHubPrimary
+                containerColor = EventHubPrimary // Use your theme color
             ) {
-                Text(text = "3", color = Color.White)
+                // Example badge content, adjust as needed
+                Text(text = "3", color = Color.White, fontSize = 10.sp)
             }
         }
     }

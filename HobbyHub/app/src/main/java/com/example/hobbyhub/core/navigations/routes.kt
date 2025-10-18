@@ -1,5 +1,13 @@
 package com.example.hobbyhub.core.navigations
 
+// Keep this Graph object if you use it for popUpTo logic
+object Graph {
+    const val ROOT = "root_graph"
+    const val AUTHENTICATION = "auth_graph" // Optional grouping
+    const val MAIN = "main_graph"          // Optional grouping
+}
+
+
 sealed class Screen(val route: String) {
     object SplashScreen : Screen("splash_screen")
     object OnboardingScreen : Screen("onboarding_screen")
@@ -19,5 +27,6 @@ sealed class Screen(val route: String) {
     object BookmarkScreen : Screen("bookmark_screen")
     object ContactUsScreen : Screen("contact_us_screen")
     object SettingsScreen : Screen("settings_screen")
-    object HelpScreen : Screen("help_screen") // Add this line
+    object HelpScreen : Screen("help_screen") // Keep this line
+    object EditProfile : Screen("edit_profile") // Keep this line
 }

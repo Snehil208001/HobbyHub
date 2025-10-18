@@ -7,6 +7,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+// Ensure Screen and Graph are imported from YOUR navigation file
+import com.example.hobbyhub.core.navigations.Graph
+import com.example.hobbyhub.core.navigations.Screen
 import com.example.hobbyhub.core.utils.navigationbar.LocationViewModel
 import com.example.hobbyhub.mainui.bookmarkscreen.ui.BookmarkScreen
 import com.example.hobbyhub.mainui.calendarscreen.ui.CalendarScreen
@@ -22,6 +25,7 @@ import com.example.hobbyhub.mainui.login.ui.ResetPasswordScreen
 import com.example.hobbyhub.mainui.mapscreen.ui.MapScreen
 import com.example.hobbyhub.mainui.messagescreen.ui.MessageScreen
 import com.example.hobbyhub.mainui.onboardingscreen.ui.OnboardingScreen
+import com.example.hobbyhub.mainui.profilescreen.ui.EditProfileScreen
 import com.example.hobbyhub.mainui.profilescreen.ui.ProfileScreen
 import com.example.hobbyhub.mainui.settingsscreen.ui.SettingsScreen
 import com.example.hobbyhub.mainui.signup.ui.SignupScreen
@@ -29,17 +33,19 @@ import com.example.hobbyhub.mainui.splashscreen.ui.SplashScreen
 import com.example.hobbyhub.mainui.workshopsscreen.ui.WorkshopsScreen
 
 @Composable
-fun SetupNavGraph(
+fun SetupNavGraph( // Keep your function name
     navController: NavHostController,
-    startDestination: String // <-- ADD THIS PARAMETER
+    startDestination: String
 ) {
     val locationViewModel: LocationViewModel = hiltViewModel()
     val location by locationViewModel.location.collectAsState()
 
     NavHost(
         navController = navController,
-        startDestination = startDestination // <-- USE THE PARAMETER HERE
+        startDestination = startDestination,
+        route = Graph.ROOT // <-- Define NavHost with root graph route
     ) {
+        // Use Screen.*.route for all composable routes
         composable(Screen.SplashScreen.route) {
             SplashScreen(navController = navController)
         }
@@ -52,9 +58,9 @@ fun SetupNavGraph(
         composable(Screen.SignupScreen.route) {
             SignupScreen(navController = navController)
         }
-//        composable(Screen.ResetPasswordScreen.route) {
-//            ResetPasswordScreen(navController = navController)
-//        }
+        composable(Screen.ResetPasswordScreen.route) { // <-- Use Screen and uncomment if needed
+            ResetPasswordScreen(navController = navController)
+        }
         composable(Screen.HomeScreen.route) {
             HomeScreen(navController = navController, locationViewModel = locationViewModel)
         }
@@ -71,7 +77,8 @@ fun SetupNavGraph(
             WorkshopsScreen(navController = navController)
         }
         composable(Screen.ProfileScreen.route) {
-            ProfileScreen(navController)
+            // Fix: Add parameter name navController = ...
+            ProfileScreen(navController = navController)
         }
         composable(Screen.DeleteAccountScreen.route) {
             DeleteAccountScreen(navController = navController)
@@ -87,15 +94,12 @@ fun SetupNavGraph(
         composable(Screen.MessageScreen.route) {
             MessageScreen(navController = navController)
         }
-
         composable(Screen.CalendarScreen.route) {
             CalendarScreen(navController = navController)
         }
-
         composable(Screen.BookmarkScreen.route) {
             BookmarkScreen(navController = navController)
         }
-
         composable(Screen.ContactUsScreen.route) {
             ContactUsScreen(navController = navController)
         }
@@ -105,6 +109,8 @@ fun SetupNavGraph(
         composable(Screen.HelpScreen.route) {
             HelpScreen(navController = navController)
         }
-
+        composable(route = Screen.EditProfile.route) { // <-- Use Screen
+            EditProfileScreen(navController = navController)
+        }
     }
 }
