@@ -1,5 +1,6 @@
 package com.example.hobbyhub.mainui.login.viewmodel
 
+import androidx.core.util.PatternsCompat // Import for email validation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hobbyhub.data.AuthRepository
@@ -16,7 +17,10 @@ data class LoginUiState(
     val password: String = "",
     val passwordVisible: Boolean = false,
     val rememberMe: Boolean = false,
-    val isLoginEnabled: Boolean = true
+    val isLoginEnabled: Boolean = false, // Start as disabled
+    // Optional error messages
+    val emailError: String? = null,
+    val passwordError: String? = null
 )
 
 @HiltViewModel
@@ -31,11 +35,15 @@ class LoginViewModel @Inject constructor(
     val signInState = _signInState.asStateFlow()
 
     fun onEmailChange(newEmail: String) {
-        _uiState.update { it.copy(email = newEmail) }
+        // Clear error on change and validate
+        _uiState.update { it.copy(email = newEmail, emailError = null) }
+        validateForm()
     }
 
     fun onPasswordChange(newPassword: String) {
-        _uiState.update { it.copy(password = newPassword) }
+        // Clear error on change and validate
+        _uiState.update { it.copy(password = newPassword, passwordError = null) }
+        validateForm()
     }
 
     fun togglePasswordVisibility() {
@@ -44,33 +52,68 @@ class LoginViewModel @Inject constructor(
 
     fun onRememberMeToggle(isChecked: Boolean) {
         _uiState.update { it.copy(rememberMe = isChecked) }
+        // No need to re-validate form for remember me toggle
     }
+
+    private fun validateForm() {
+        val state = _uiState.value
+        var isFormValid = true
+        var emailError: String? = null
+        var passwordError: String? = null
+
+        if (state.email.isBlank()) {
+            emailError = "Email cannot be empty."
+            isFormValid = false
+        } else if (!PatternsCompat.EMAIL_ADDRESS.matcher(state.email).matches()) {
+            emailError = "Invalid email format."
+            isFormValid = false
+        }
+
+        if (state.password.isBlank()) {
+            passwordError = "Password cannot be empty."
+            isFormValid = false
+        }
+        // No minimum length check needed for login, just non-empty
+
+        // Update UI state with validation results
+        _uiState.update {
+            it.copy(
+                isLoginEnabled = isFormValid,
+                emailError = emailError,
+                passwordError = passwordError
+            )
+        }
+    }
+
 
     fun onLoginClick() {
+        validateForm() // Re-validate before attempting login
+        val state = _uiState.value
+        if (!state.isLoginEnabled) {
+            // Don't proceed if form is invalid
+            return
+        }
+
         viewModelScope.launch {
+            // Set loading state
             _signInState.update { it.copy(isLoading = true) }
             try {
-                authRepository.signInWithEmailAndPassword(_uiState.value.email, _uiState.value.password)
-                _signInState.update { it.copy(isLoading = false, isSuccess = true) }
+                // Attempt sign in
+                authRepository.signInWithEmailAndPassword(state.email, state.password)
+                // Update state on success
+                _signInState.update { it.copy(isLoading = false, isSuccess = true, error = null) }
             } catch (e: Exception) {
-                _signInState.update { it.copy(isLoading = false, error = e.message) }
+                // Update state on failure
+                _signInState.update { it.copy(isLoading = false, isSuccess = false, error = e.localizedMessage ?: "Login failed") }
             }
         }
     }
 
-    fun onGoogleSignIn(idToken: String) {
-        viewModelScope.launch {
-            _signInState.update { it.copy(isLoading = true) }
-            try {
-                authRepository.signInWithGoogle(idToken)
-                _signInState.update { it.copy(isLoading = false, isSuccess = true) }
-            } catch (e: Exception) {
-                _signInState.update { it.copy(isLoading = false, error = e.message) }
-            }
-        }
-    }
+    // Removed onGoogleSignIn function as requested previously
 
     fun resetState() {
         _signInState.value = SignInState()
+        // Optionally reset UI fields if needed after error
+        // _uiState.value = LoginUiState()
     }
 }

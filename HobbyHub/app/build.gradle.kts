@@ -98,9 +98,6 @@ dependencies {
     // 3. Accompanist Flow Layout
     implementation("com.google.accompanist:accompanist-flowlayout:0.32.0")
 
-    // Activity Result API for picking and cropping
-    implementation("androidx.activity:activity-compose:1.8.1")
-
     // 🔑 FIXED: Explicitly add appcompat to provide the required XML themes
     implementation("androidx.appcompat:appcompat:1.6.1")
 }

@@ -1,9 +1,8 @@
 package com.example.hobbyhub.mainui.login.ui
 
+import android.app.Activity // Keep Activity import if needed by other parts not shown
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke // Keep if SocialLoginButton is used elsewhere
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -38,9 +36,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.hobbyhub.R
@@ -49,10 +44,7 @@ import com.example.hobbyhub.mainui.login.viewmodel.LoginViewModel
 import com.example.hobbyhub.ui.theme.EventHubDarkText
 import com.example.hobbyhub.ui.theme.EventHubLightGray
 import com.example.hobbyhub.ui.theme.EventHubPrimary
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch // Keep
 
 @Composable
 fun LoginScreen(
@@ -63,57 +55,21 @@ fun LoginScreen(
     val signInState by viewModel.signInState.collectAsState()
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult(),
-        onResult = { result ->
-            try {
-                val credential = CredentialManager.create(context).getCredentialFromIntent(result.data!!)
-                val googleIdToken = (credential.credential as GoogleIdTokenCredential).idToken
-                viewModel.onGoogleSignIn(googleIdToken)
-            } catch (e: GoogleIdTokenParsingException) {
-                Toast.makeText(context, "Google Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-    )
-
-    fun launchGoogleSignIn() = coroutineScope.launch {
-        val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(context.getString(R.string.your_web_client_id))
-            .build()
-
-        val request: GetCredentialRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
-        try {
-            val result = CredentialManager.create(context).getCredential(context, request)
-            val googleIdToken = (result.credential as GoogleIdTokenCredential).idToken
-            viewModel.onGoogleSignIn(googleIdToken)
-        } catch (e: GetCredentialException) {
-            val pendingIntent = e.entries.firstOrNull()?.pendingIntent
-            if (pendingIntent != null) {
-                launcher.launch(IntentSenderRequest.Builder(pendingIntent).build())
-            } else {
-                Toast.makeText(context, "Google Sign-In failed.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-
+    // Handle Sign In Success/Error
     LaunchedEffect(signInState) {
         if (signInState.isSuccess) {
             Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
+            // Navigate to Home screen, clearing the back stack
             navController.navigate(Screen.HomeScreen.route) {
                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                launchSingleTop = true
             }
-            viewModel.resetState()
+            viewModel.resetState() // Reset login state after navigation
         }
         signInState.error?.let {
             Toast.makeText(context, "Error: $it", Toast.LENGTH_LONG).show()
-            viewModel.resetState()
+            viewModel.resetState() // Reset login state after showing error
         }
     }
 
@@ -122,11 +78,13 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical)) // Respect system bars
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(80.dp)) // Space from top
 
+            // Logo and App Name
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "HobbyHub Logo",
@@ -140,26 +98,39 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(64.dp))
 
+            // Title
             Text(
                 "Sign in",
                 style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
                 fontWeight = FontWeight.SemiBold,
                 color = EventHubDarkText,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth() // Align text start
                     .padding(bottom = 16.dp)
             )
 
+            // Email Field
             CustomTextField(
                 value = uiState.email,
                 onValueChange = viewModel::onEmailChange,
                 placeholderText = "abc@email.com",
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                isError = uiState.emailError != null // Pass error state
             )
+            // Optional: Display Email Error
+            uiState.emailError?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp).fillMaxWidth()
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Password Field
             CustomTextField(
                 value = uiState.password,
                 onValueChange = viewModel::onPasswordChange,
@@ -173,10 +144,24 @@ fun LoginScreen(
                     }
                 },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                keyboardActions = KeyboardActions(onDone = {
+                    viewModel.onLoginClick() // Attempt login on keyboard done
+                    focusManager.clearFocus()
+                }),
+                isError = uiState.passwordError != null // Pass error state
             )
+            // Optional: Display Password Error
+            uiState.passwordError?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp).fillMaxWidth()
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Remember Me and Forgot Password Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -189,7 +174,7 @@ fun LoginScreen(
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
                             checkedTrackColor = EventHubPrimary,
-                            uncheckedThumbColor = Color.LightGray,
+                            uncheckedThumbColor = Color.LightGray, // More subtle unchecked colors
                             uncheckedTrackColor = EventHubLightGray
                         )
                     )
@@ -198,21 +183,27 @@ fun LoginScreen(
                 }
                 TextButton(
                     onClick = { navController.navigate(Screen.ResetPasswordScreen.route) },
-                    contentPadding = PaddingValues(0.dp)
+                    contentPadding = PaddingValues(0.dp) // Remove default padding
                 ) {
                     Text("Forgot Password?", color = EventHubPrimary, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Sign In Button
             Button(
                 onClick = viewModel::onLoginClick,
-                enabled = !signInState.isLoading,
+                // Use the validated state from ViewModel, also check loading state
+                enabled = uiState.isLoginEnabled && !signInState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = EventHubPrimary)
+                shape = RoundedCornerShape(50), // Pill shape
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = EventHubPrimary,
+                    // Optional: Dim button when disabled
+                    disabledContainerColor = EventHubPrimary.copy(alpha = 0.5f)
+                )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -220,41 +211,40 @@ fun LoginScreen(
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = Color.White // Ensure text is white
                     )
-                    Icon(Icons.Default.ArrowForward, contentDescription = "Sign In")
+                    Icon(Icons.Default.ArrowForward, contentDescription = "Sign In", tint = Color.White)
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
 
-            DividerWithText()
+            // Removed Social Login Buttons and Divider
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.weight(1f)) // Pushes SignUpLink to bottom
 
-            SocialLoginButton(
-                icon = R.drawable.ic_google,
-                text = "Login with Google",
-                onClick = { launchGoogleSignIn() }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            SocialLoginButton(
-                icon = R.drawable.ic_facebook,
-                text = "Login with Facebook",
-                onClick = { /* TODO */ }
-            )
-            Spacer(modifier = Modifier.weight(1f))
-
+            // Sign Up Link
             SignUpLink(navController)
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp)) // Padding at the very bottom
         }
 
+        // Loading Indicator Overlay
         if (signInState.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                // Optional: Add a semi-transparent background scrim
+                // .background(Color.Black.copy(alpha = 0.3f))
+            ) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
         }
     }
 }
-// Keep the rest of the file (CustomTextField, SocialLoginButton, etc.) as is
 
+
+// --- CustomTextField Composable (Updated with isError) ---
+// (Ensure this definition is present and matches the one from SignupScreen.kt)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomTextField(
     value: String,
@@ -264,7 +254,8 @@ private fun CustomTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: @Composable (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    isError: Boolean = false // Make sure this parameter exists
 ) {
     TextField(
         value = value,
@@ -273,6 +264,7 @@ private fun CustomTextField(
         leadingIcon = leadingIcon,
         visualTransformation = visualTransformation,
         trailingIcon = trailingIcon,
+        isError = isError, // Pass error state
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),
@@ -286,6 +278,12 @@ private fun CustomTextField(
             cursorColor = EventHubPrimary,
             focusedTextColor = EventHubDarkText,
             unfocusedTextColor = EventHubDarkText,
+            errorContainerColor = Color.White,
+            errorIndicatorColor = Color.Transparent,
+            errorCursorColor = MaterialTheme.colorScheme.error,
+            errorLeadingIconColor = if (isError) MaterialTheme.colorScheme.error else Color.Gray,
+            errorTrailingIconColor = if (isError) MaterialTheme.colorScheme.error else Color.Gray,
+            errorTextColor = EventHubDarkText
         ),
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
@@ -293,6 +291,7 @@ private fun CustomTextField(
     )
 }
 
+// --- SocialLoginButton Composable (Kept in case needed later, but not called) ---
 @Composable
 fun SocialLoginButton(
     icon: Int,
@@ -310,10 +309,8 @@ fun SocialLoginButton(
             containerColor = Color.White,
             contentColor = EventHubDarkText
         ),
-        border = androidx.compose.material3.ButtonDefaults.outlinedButtonBorder.copy(
-            brush = androidx.compose.ui.graphics.SolidColor(EventHubLightGray)
-        ),
-        contentPadding = PaddingValues(horizontal = 0.dp)
+        border = BorderStroke(1.dp, EventHubLightGray),
+        contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -335,6 +332,7 @@ fun SocialLoginButton(
     }
 }
 
+// --- SignUpLink Composable (No changes needed) ---
 @Composable
 private fun SignUpLink(navController: NavController) {
     val annotatedString = buildAnnotatedString {
@@ -351,22 +349,12 @@ private fun SignUpLink(navController: NavController) {
         onClick = { offset ->
             annotatedString.getStringAnnotations(tag = "SignUp", start = offset, end = offset)
                 .firstOrNull()?.let {
-                    navController.navigate(Screen.SignupScreen.route)
+                    navController.navigate(Screen.SignupScreen.route) {
+                        launchSingleTop = true
+                    }
                 }
         },
-        style = LocalTextStyle.current.copy(color = EventHubDarkText)
+        style = LocalTextStyle.current.copy(color = EventHubDarkText, textAlign = TextAlign.Center),
+        modifier = Modifier.fillMaxWidth()
     )
-}
-
-@Composable
-fun DividerWithText() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Divider(modifier = Modifier.weight(1f), color = EventHubLightGray, thickness = 1.dp)
-        Text("OR", modifier = Modifier.padding(horizontal = 8.dp), color = Color.Gray, fontWeight = FontWeight.SemiBold)
-        Divider(modifier = Modifier.weight(1f), color = EventHubLightGray, thickness = 1.dp)
-    }
 }

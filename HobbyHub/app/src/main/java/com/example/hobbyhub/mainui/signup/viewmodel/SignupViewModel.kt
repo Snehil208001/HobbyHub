@@ -1,5 +1,6 @@
 package com.example.hobbyhub.mainui.signup.viewmodel
 
+import androidx.core.util.PatternsCompat // Import for email validation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hobbyhub.data.AuthRepository
@@ -14,13 +15,18 @@ import javax.inject.Inject
 data class SignupUiState(
     val fullName: String = "",
     val email: String = "",
-    val city: String = "",
+    // Removed city as it wasn't used in the UI
     val password: String = "",
     val confirmPassword: String = "",
     val passwordVisible: Boolean = false,
     val confirmPasswordVisible: Boolean = false,
-    val selectedHobbyTags: Set<String> = emptySet(),
-    val isSignUpEnabled: Boolean = true
+    // Removed hobby tags as they weren't used in the provided UI
+    val isSignUpEnabled: Boolean = false, // Start as disabled
+    // Validation error messages (optional, can be displayed in UI)
+    val fullNameError: String? = null,
+    val emailError: String? = null,
+    val passwordError: String? = null,
+    val confirmPasswordError: String? = null
 )
 
 @HiltViewModel
@@ -34,26 +40,32 @@ class SignupViewModel @Inject constructor(
     private val _signUpState = MutableStateFlow(SignInState())
     val signUpState = _signUpState.asStateFlow()
 
-    val availableHobbyTags = listOf("Art", "Cycling", "Cooking", "Photography", "Gaming", "Hiking", "Reading", "Music")
+    // Removed availableHobbyTags
 
     fun onFullNameChange(newFullName: String) {
-        _uiState.update { it.copy(fullName = newFullName) }
+        // Clear error on change and validate
+        _uiState.update { it.copy(fullName = newFullName, fullNameError = null) }
+        validateForm()
     }
 
     fun onEmailChange(newEmail: String) {
-        _uiState.update { it.copy(email = newEmail) }
+        // Clear error on change and validate
+        _uiState.update { it.copy(email = newEmail, emailError = null) }
+        validateForm()
     }
 
-    fun onCityChange(newCity: String) {
-        _uiState.update { it.copy(city = newCity) }
-    }
+    // Removed onCityChange
 
     fun onPasswordChange(newPassword: String) {
-        _uiState.update { it.copy(password = newPassword) }
+        // Clear error on change and validate
+        _uiState.update { it.copy(password = newPassword, passwordError = null) }
+        validateForm()
     }
 
     fun onConfirmPasswordChange(newConfirmPassword: String) {
-        _uiState.update { it.copy(confirmPassword = newConfirmPassword) }
+        // Clear error on change and validate
+        _uiState.update { it.copy(confirmPassword = newConfirmPassword, confirmPasswordError = null) }
+        validateForm()
     }
 
     fun togglePasswordVisibility() {
@@ -64,34 +76,86 @@ class SignupViewModel @Inject constructor(
         _uiState.update { it.copy(confirmPasswordVisible = !it.confirmPasswordVisible) }
     }
 
-    fun toggleHobbyTag(tag: String) {
-        _uiState.update { currentState ->
-            val newTags = if (currentState.selectedHobbyTags.contains(tag)) {
-                currentState.selectedHobbyTags - tag
-            } else {
-                currentState.selectedHobbyTags + tag
-            }
-            currentState.copy(selectedHobbyTags = newTags)
+    // Removed toggleHobbyTag
+
+    private fun validateForm() {
+        val state = _uiState.value
+        var isFormValid = true
+        var fullNameError: String? = null
+        var emailError: String? = null
+        var passwordError: String? = null
+        var confirmPasswordError: String? = null
+
+        if (state.fullName.isBlank()) {
+            fullNameError = "Full name cannot be empty."
+            isFormValid = false
+        }
+
+        if (state.email.isBlank()) {
+            emailError = "Email cannot be empty."
+            isFormValid = false
+        } else if (!PatternsCompat.EMAIL_ADDRESS.matcher(state.email).matches()) {
+            emailError = "Invalid email format."
+            isFormValid = false
+        }
+
+        // Firebase default minimum password length is 6
+        if (state.password.isBlank()) {
+            passwordError = "Password cannot be empty."
+            isFormValid = false
+        } else if (state.password.length < 6) {
+            passwordError = "Password must be at least 6 characters."
+            isFormValid = false
+        }
+
+        if (state.confirmPassword.isBlank()) {
+            confirmPasswordError = "Confirm password cannot be empty."
+            isFormValid = false
+        } else if (state.password != state.confirmPassword) {
+            confirmPasswordError = "Passwords do not match."
+            isFormValid = false
+        }
+
+        // Update UI state with validation results
+        _uiState.update {
+            it.copy(
+                isSignUpEnabled = isFormValid,
+                fullNameError = fullNameError,
+                emailError = emailError,
+                passwordError = passwordError,
+                confirmPasswordError = confirmPasswordError
+            )
         }
     }
 
+
     fun onSignupClick() {
+        // Re-validate just in case, although button state should handle it
+        validateForm()
+        val state = _uiState.value
+        if (!state.isSignUpEnabled) {
+            // Don't proceed if form is invalid
+            return
+        }
+
         viewModelScope.launch {
             _signUpState.update { it.copy(isLoading = true) }
             try {
-                val state = _uiState.value
-                if (state.password != state.confirmPassword) {
-                    throw Exception("Passwords do not match.")
-                }
+                // Password match is already checked in validateForm
                 authRepository.createUserWithEmailAndPassword(state.email, state.password)
-                _signUpState.update { it.copy(isLoading = false, isSuccess = true) }
+                // If successful, update state
+                _signUpState.update { it.copy(isLoading = false, isSuccess = true, error = null) }
             } catch (e: Exception) {
-                _signUpState.update { it.copy(isLoading = false, error = e.message) }
+                // If error, update state
+                _signUpState.update { it.copy(isLoading = false, isSuccess = false, error = e.localizedMessage ?: "An unknown error occurred") }
             }
         }
     }
 
+
     fun resetState() {
         _signUpState.value = SignInState()
+        // Optionally reset UI fields as well if needed after an error
+        // _uiState.value = SignupUiState()
     }
 }
