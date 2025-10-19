@@ -1,3 +1,5 @@
+// snehil208001/hobbyhub/HobbyHub-102bbb5bfeae283b4c3e52ca5e13f3198e956095/HobbyHub/app/src/main/java/com/example/hobbyhub/mainui/homescreen/ui/HomeScreen.kt
+
 package com.example.hobbyhub.mainui.homescreen.ui
 
 import android.Manifest
@@ -78,6 +80,13 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
+
+    // --- ADDED: Load profile data when HomeScreen is shown ---
+    // This ensures the profileViewModel this screen holds has the latest data.
+    LaunchedEffect(Unit) {
+        profileViewModel.loadUserProfile()
+    }
+    // --- END ADD ---
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()

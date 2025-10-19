@@ -1,121 +1,143 @@
+// In snehil208001/hobbyhub/HobbyHub-102bbb5bfeae283b4c3e52ca5e13f3198e956095/HobbyHub/app/src/main/java/com/example/hobbyhub/data/AuthRepository.kt
+
 package com.example.hobbyhub.data
 
-import android.net.Uri // Import Uri
-import android.util.Log // <-- Import Log
+import android.net.Uri
+import android.util.Log
 import com.example.hobbyhub.domain.model.User
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage // Import Storage
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.storageMetadata
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class AuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val storage: FirebaseStorage // 1. Inject Storage
+    private val storage: FirebaseStorage
 ) {
 
-    // 2. Keep this function as-is
+    // ... (signInWithEmailAndPassword function is unchanged) ...
     suspend fun signInWithEmailAndPassword(email: String, password: String): AuthResult {
         return auth.signInWithEmailAndPassword(email, password).await()
     }
 
-    // 3. Update createUser to handle image upload
+    // --- MODIFIED: createUserWithEmailAndPassword ---
     suspend fun createUserWithEmailAndPassword(
         fullName: String,
         email: String,
         password: String,
-        imageUri: Uri? // Accept the image Uri
+        imageUri: Uri?
     ) {
         try {
-            // Create user in Auth
             val authResult = auth.createUserWithEmailAndPassword(email, password).await()
             val firebaseUser = authResult.user
                 ?: throw Exception("Failed to create user details: user is null.")
 
-            // Handle Image Upload
             var profileImageUrl = ""
             if (imageUri != null) {
-                // Upload the image and get the URL
                 profileImageUrl = uploadProfileImage(firebaseUser.uid, imageUri)
             }
 
-            // Save user details to Firestore
             val user = User(
                 uid = firebaseUser.uid,
                 fullName = fullName,
                 email = email,
-                profileImageUrl = profileImageUrl // Save the URL
-                // hobbies and bio will use default empty values initially
+                profileImageUrl = profileImageUrl,
+                joinedDate = System.currentTimeMillis() // <-- ADDED: Set joined date on creation
+                // isPrivate defaults to false
             )
             firestore.collection("users").document(firebaseUser.uid)
                 .set(user)
                 .await()
 
         } catch (e: Exception) {
-            // Log the error for better debugging
             Log.e("AuthRepository", "User creation failed", e)
-            throw e // Re-throw the exception
+            throw e
         }
     }
+    // --- END MODIFICATION ---
 
-    // 4. Add this new function to upload the image (Matches Option 1 Rule)
+    // ... (uploadProfileImage function is unchanged) ...
     private suspend fun uploadProfileImage(uid: String, imageUri: Uri): String {
         return try {
-            val storageRef = storage.reference.child("profile_images/$uid.jpg") // Path matching Option 1 rule
-            storageRef.putFile(imageUri).await() // Upload file
-            storageRef.downloadUrl.await().toString() // Get download URL
+            val storageRef = storage.reference.child("profile_images/$uid.jpg")
+            val metadata = storageMetadata {
+                cacheControl = "no-store"
+            }
+            storageRef.putFile(imageUri, metadata).await()
+            storageRef.downloadUrl.await().toString()
         } catch (e: Exception) {
-            // Log the error for better debugging
             Log.e("AuthRepository", "Image upload failed", e)
-            "" // Return empty string on failure
+            ""
         }
     }
 
-    // 5. This function is correct and fetches the User object
+    // ... (getUserProfile function is unchanged) ...
     suspend fun getUserProfile(): User? {
         val uid = auth.currentUser?.uid ?: return null
-
         return try {
             val documentSnapshot = firestore.collection("users").document(uid)
                 .get()
                 .await()
-            documentSnapshot.toObject(User::class.java) // Returns User object
+            documentSnapshot.toObject(User::class.java)
         } catch (e: Exception) {
-            // Log the error
             Log.e("AuthRepository", "Failed to get user profile", e)
             null
         }
     }
 
-    // --- ADD updateProfile ---
-    suspend fun updateProfile(bio: String, hobbies: List<String>) {
+    // --- MODIFIED: updateProfile ---
+    suspend fun updateProfile(
+        bio: String,
+        hobbies: List<String>,
+        location: String,
+        website: String,
+        isPrivate: Boolean // <-- ADDED
+    ) {
         val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
         try {
             val updates = mapOf(
                 "bio" to bio,
-                "hobbies" to hobbies
+                "hobbies" to hobbies,
+                "location" to location,
+                "website" to website,
+                "isPrivate" to isPrivate // <-- ADDED
             )
             firestore.collection("users").document(uid)
-                .update(updates) // Use update instead of set to only change specific fields
+                .update(updates)
                 .await()
         } catch (e: Exception) {
-            // Log the error for better debugging
             Log.e("AuthRepository", "Profile update failed", e)
-            throw e // Re-throw the exception to be caught by the ViewModel
+            throw e
         }
     }
-    // --- END updateProfile ---
+    // --- END MODIFICATION ---
 
+    // ... (updateUserProfileImage function is unchanged) ...
+    suspend fun updateUserProfileImage(uid: String, imageUri: Uri): String {
+        return try {
+            val newImageUrl = uploadProfileImage(uid, imageUri)
+            if (newImageUrl.isNotEmpty()) {
+                firestore.collection("users").document(uid)
+                    .update("profileImageUrl", newImageUrl)
+                    .await()
+            }
+            newImageUrl
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Profile image update failed", e)
+            throw e
+        }
+    }
 
-    // 6. Keep these functions
+    // --- MODIFIED: signInWithGoogle ---
     suspend fun signInWithGoogle(idToken: String): AuthResult {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         val authResult = auth.signInWithCredential(credential).await()
         val firebaseUser = authResult.user
-        // Check if user exists in Firestore, if not, create them
         if (firebaseUser != null) {
             val userDoc = firestore.collection("users").document(firebaseUser.uid).get().await()
             if (!userDoc.exists()) {
@@ -123,15 +145,17 @@ class AuthRepository @Inject constructor(
                     uid = firebaseUser.uid,
                     fullName = firebaseUser.displayName ?: "Google User",
                     email = firebaseUser.email ?: "",
-                    profileImageUrl = firebaseUser.photoUrl?.toString() ?: ""
-                    // Hobbies and bio will be default empty
+                    profileImageUrl = firebaseUser.photoUrl?.toString() ?: "",
+                    joinedDate = System.currentTimeMillis() // <-- ADDED: Set joined date for Google sign-up
                 )
                 firestore.collection("users").document(firebaseUser.uid).set(newUser).await()
             }
         }
         return authResult
     }
+    // --- END MODIFICATION ---
 
+    // ... (signOut and getCurrentUser functions are unchanged) ...
     fun signOut() {
         auth.signOut()
     }

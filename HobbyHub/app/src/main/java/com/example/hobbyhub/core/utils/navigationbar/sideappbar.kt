@@ -1,3 +1,5 @@
+// snehil208001/hobbyhub/HobbyHub-102bbb5bfeae283b4c3e52ca5e13f3198e956095/HobbyHub/app/src/main/java/com/example/hobbyhub/core/utils/navigationbar/sideappbar.kt
+
 package com.example.hobbyhub.core.utils.navigationbar
 
 import androidx.compose.foundation.Image
@@ -39,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext // <-- ADD THIS IMPORT
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +49,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.CachePolicy // <-- ADD THIS IMPORT
+import coil.request.ImageRequest // <-- ADD THIS IMPORT
 import com.example.hobbyhub.R
 import com.example.hobbyhub.core.navigations.Screen // Use Screen as per your NavGraph
 import com.example.hobbyhub.mainui.profilescreen.viewmodel.ProfileViewModel
@@ -56,15 +61,15 @@ import kotlinx.coroutines.launch
 @Composable
 fun SideAppBar(
     navController: NavController,
-    profileViewModel: ProfileViewModel = hiltViewModel()
+    // --- MODIFIED: Removed "= hiltViewModel()" to use the instance passed from HomeScreen ---
+    profileViewModel: ProfileViewModel
 ) {
-    // --- FIX Line 65: Collect uiState, not userProfile ---
     val uiState by profileViewModel.uiState.collectAsState()
-    val user = uiState.user // Get user from the uiState
-    // --- END FIX ---
+    val user = uiState.user
 
     val upgradeProColor = Color(0xFF00C853)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current // <-- ADDED for ImageRequest
 
     ModalDrawerSheet(
         modifier = Modifier
@@ -85,34 +90,35 @@ fun SideAppBar(
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 24.dp)
             ) {
-                // --- CORRECTED IMAGE LOGIC (Access via user?.profileImageUrl) ---
+                // --- MODIFIED: Added cache-busting ImageRequest ---
                 AsyncImage(
-                    // Use user object and provide default/placeholder
-                    model = user?.profileImageUrl?.ifEmpty { R.drawable.logo } ?: R.drawable.logo,
+                    model = ImageRequest.Builder(context)
+                        .data(user?.profileImageUrl?.ifEmpty { R.drawable.logo } ?: R.drawable.logo)
+                        .crossfade(true)
+                        .error(R.drawable.logo)
+                        .placeholder(R.drawable.logo)
+                        .memoryCachePolicy(CachePolicy.DISABLED) // Don't use memory cache
+                        .diskCachePolicy(CachePolicy.DISABLED)   // Don't use disk cache
+                        .build(),
                     contentDescription = "Profile Picture",
-                    placeholder = painterResource(id = R.drawable.logo), // Add placeholder
-                    error = painterResource(id = R.drawable.logo),       // Add error fallback
                     modifier = Modifier
                         .size(60.dp)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
-                // --- END CORRECTION ---
+                // --- END MODIFICATION ---
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // --- Access name via user?.fullName ---
-                // Handle null user while loading or if error occurs
                 Text(
                     text = if (user != null) user.fullName.ifEmpty { "User" } else "Loading...",
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                     color = Color.Black
                 )
-                // --- END FIX ---
             }
 
-            // Navigation Items (Unchanged - Already uses Screen.*)
+            // Navigation Items (Unchanged)
             DrawerMenuItem(icon = Icons.Outlined.Person, text = "My Profile", onClick = { navController.navigate(Screen.ProfileScreen.route)})
             DrawerMenuItem(icon = Icons.Outlined.Message, text = "Message", hasBadge = true, onClick = { navController.navigate(Screen.MessageScreen.route)})
             DrawerMenuItem(icon = Icons.Outlined.CalendarToday, text = "Calender", onClick = { navController.navigate(Screen.CalendarScreen.route) })
@@ -129,10 +135,9 @@ fun SideAppBar(
                 icon = Icons.Outlined.Logout,
                 text = "Sign Out",
                 onClick = {
-                    profileViewModel.onSignOutClick { // Use the ViewModel's signout method
+                    profileViewModel.onSignOutClick {
                         scope.launch {
                             navController.navigate(Screen.LoginScreen.route) {
-                                // Pop up to the start destination of the graph to clear backstack
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                 launchSingleTop = true
                             }
@@ -174,7 +179,7 @@ private fun DrawerMenuItem(
     icon: ImageVector,
     text: String,
     hasBadge: Boolean = false,
-    contentColor: Color = Color.DarkGray, // Adjusted default for better visibility maybe
+    contentColor: Color = Color.DarkGray,
     onClick: () -> Unit = {}
 ) {
     Row(
@@ -199,9 +204,8 @@ private fun DrawerMenuItem(
         )
         if (hasBadge) {
             Badge(
-                containerColor = EventHubPrimary // Use your theme color
+                containerColor = EventHubPrimary
             ) {
-                // Example badge content, adjust as needed
                 Text(text = "3", color = Color.White, fontSize = 10.sp)
             }
         }
